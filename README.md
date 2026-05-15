@@ -36,7 +36,7 @@ Create/edit `config/yt-playlist-config.json`:
     }
   ],
   "yt_dlp_path": "yt-dlp",
-  "ffmpeg_path": "ffmpeg"
+  "ffmpeg_path": "./ffmpeg"
 }
 ```
 
