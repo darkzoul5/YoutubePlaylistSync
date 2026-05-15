@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 from ..models import PlaylistItem
@@ -21,7 +22,9 @@ class JobState(str, Enum):
 @dataclass
 class DownloadJob:
     item: PlaylistItem
-    output_name: Optional[str] = None
+    output_path: Optional[Path] = None
+    url: Optional[str] = None
+    mode: str = "audio"  # audio|video
     state: JobState = JobState.QUEUED
     error: Optional[str] = None
 

@@ -19,12 +19,14 @@ class SyncService:
         self.scanner = PlaylistScanner()
         self.diff = DiffEngine()
 
-    def _mode_to_extension(self, mode: str) -> str:
+    def _mode_to_extensions(self, mode: str) -> list[str]:
         if mode == "audio":
-            return ".mp3"
+            return [".mp3"]
         if mode == "video":
-            return ".mp4"
-        return ".mp3"  # default for MVP
+            return [".mp4"]
+        if mode == "both":
+            return [".mp3", ".mp4"]
+        return [".mp3"]
 
     def sync_from_config(self, playlist_cfg: dict) -> List[dict]:
         url: str = playlist_cfg.get("url")
@@ -33,8 +35,6 @@ class SyncService:
         save_path.mkdir(parents=True, exist_ok=True)
 
         playlist_id = extract_playlist_id(url) or url
-        ext = self._mode_to_extension(mode)
-
         items = self.scanner.scan(url, playlist_id)
 
         sanitized: List[PlaylistItem] = []
@@ -76,11 +76,14 @@ class SyncService:
                 downloaded=bool(row["downloaded"]),
             )
 
-        mode_dir = "audio" if ext == ".mp3" else "video"
-        fs_root = (save_path / mode_dir)
-        fs_entries = list_files(fs_root, [ext])
-
-        actions = self.diff.compute_actions(sanitized, db_index, fs_entries, ext)
+        exts = self._mode_to_extensions(mode)
+        merged_actions = []
+        for ext in exts:
+            mode_dir = "audio" if ext == ".mp3" else "video"
+            fs_root = (save_path / mode_dir)
+            fs_entries = list_files(fs_root, [ext])
+            actions = self.diff.compute_actions(sanitized, db_index, fs_entries, ext)
+            merged_actions.extend(actions)
 
         return [
             {
@@ -89,5 +92,5 @@ class SyncService:
                 "from_name": a.from_name,
                 "to_name": a.to_name,
             }
-            for a in actions
+            for a in merged_actions
         ]
