@@ -20,14 +20,6 @@ into:
 Persistent YouTube playlist synchronization client
 ```
 
-The application should behave more like:
-
-- Dropbox sync
-- Jellyfin media updater
-- Local playlist mirror
-
-than a traditional downloader.
-
 The application becomes state-driven.
 
 ---
@@ -56,9 +48,7 @@ Not planned right now:
 - Built-in media playback
 - Advanced naming templates
 - Drag-and-drop manual ordering
-- Private playlist authentication
-- YouTube login
-- Streaming UI
+- Private playlist sync
 - Channel subscriptions
 - Metadata editing
 
@@ -789,4 +779,3 @@ That identity is:
 - more unique
 - technically stronger
 - easier to expand later
-
