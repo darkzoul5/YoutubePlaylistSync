@@ -1,8 +1,8 @@
 version: '3.8'
 services:
-  ytpld:
-    image: git.darkzoul.org/dark_zoul/ytpld:latest
-    container_name: ytpld
+  ytplst:
+    image: git.darkzoul.org/dark_zoul/ytplst:latest
+    container_name: ytplst
     restart: no
     volumes:
       - /path/to/downloads:/app/downloads
