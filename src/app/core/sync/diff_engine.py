@@ -1,16 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Iterable, List, Mapping, Sequence
 
-from ..models import PlaylistItem, SyncAction, SyncActionType
-
-
-@dataclass(frozen=True)
-class FilesystemEntry:
-    name: str
-    path: Path
+from ..models import FilesystemEntry, PlaylistItem, SyncAction, SyncActionType
 
 
 class DiffEngine:
