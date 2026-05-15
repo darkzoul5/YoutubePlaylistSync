@@ -61,3 +61,31 @@ class Database:
             (playlist_id,),
         )
         return {row["video_id"]: row for row in cur.fetchall()}
+
+    def update_local_filename(self, playlist_id: str, video_id: str, local_filename: str | None) -> None:
+        with self._conn:
+            self._conn.execute(
+                "UPDATE playlist_items SET local_filename = ?, last_seen = datetime('now') WHERE playlist_id = ? AND video_id = ?",
+                (local_filename, playlist_id, video_id),
+            )
+
+    def mark_downloaded(self, playlist_id: str, video_id: str, downloaded: bool) -> None:
+        with self._conn:
+            self._conn.execute(
+                "UPDATE playlist_items SET downloaded = ?, last_seen = datetime('now') WHERE playlist_id = ? AND video_id = ?",
+                (1 if downloaded else 0, playlist_id, video_id),
+            )
+
+    def clear_file_state(self, playlist_id: str, video_id: str) -> None:
+        with self._conn:
+            self._conn.execute(
+                "UPDATE playlist_items SET local_filename = NULL, downloaded = 0, last_seen = datetime('now') WHERE playlist_id = ? AND video_id = ?",
+                (playlist_id, video_id),
+            )
+
+    def set_playlist_last_sync(self, playlist_id: str) -> None:
+        with self._conn:
+            self._conn.execute(
+                "UPDATE playlists SET last_sync = datetime('now') WHERE id = ?",
+                (playlist_id,),
+            )
