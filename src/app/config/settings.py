@@ -29,4 +29,18 @@ class Settings:
 
     @property
     def playlists(self) -> List[Dict[str, Any]]:
-        return list(self.data.get("playlists", []))
+        global_defaults = {
+            "download_mode": self.data.get("download_mode", DEFAULT_CONFIG["download_mode"]),
+            "max_video_quality": self.data.get("max_video_quality", DEFAULT_CONFIG["max_video_quality"]),
+            "save_path": self.data.get("save_path", DEFAULT_CONFIG["save_path"]),
+            "ffmpeg_path": self.data.get("ffmpeg_path", DEFAULT_CONFIG["ffmpeg_path"]),
+        }
+
+        results: List[Dict[str, Any]] = []
+        for pl in list(self.data.get("playlists", [])):
+            if not isinstance(pl, dict):
+                continue
+            merged = dict(global_defaults)
+            merged.update(pl)
+            results.append(merged)
+        return results
