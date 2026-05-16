@@ -28,30 +28,14 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install system deps
+      - name: Install ffmpeg
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      - name: Make bundled linux binaries executable (if present)
-        run: |
-          set -euo pipefail
-          if [ -d ./bin/linux ]; then
-            chmod +x ./bin/linux/* || true
-            ls -l ./bin/linux || true
-          fi
-
-      - name: Create venv and install project
-        run: |
-          set -euo pipefail
-          python3 -m venv .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install -e .[dev] || python -m pip install -e .
-
       - name: Run integration tests
         run: |
           set -euo pipefail
-          . .venv/bin/activate
+          python -m pip install -e .
           pytest -m integration
