@@ -73,12 +73,7 @@ jobs:
           Expand-Archive "$WORKSPACE/dist/windows/ffmpeg.zip" -DestinationPath "$WORKSPACE/dist/windows/ffmpeg_temp"
           $ffmpegExe = Get-ChildItem -Path "$WORKSPACE/dist/windows/ffmpeg_temp" -Filter "ffmpeg.exe" -Recurse | Select-Object -First 1
           Move-Item $ffmpegExe.FullName "$WORKSPACE/dist/windows/bin/ffmpeg.exe"
-          
-          # aria2c (Windows Portable)
-          Invoke-WebRequest -Uri "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip" -OutFile "$WORKSPACE/dist/windows/aria2c.zip"
-          Expand-Archive "$WORKSPACE/dist/windows/aria2c.zip" -DestinationPath "$WORKSPACE/dist/windows/aria2_temp"
-          Move-Item "$WORKSPACE/dist/windows/aria2_temp/aria2-1.37.0-win-64bit-build1/aria2c.exe" "$WORKSPACE/dist/windows/bin/aria2c.exe"
-          
+
           # Build .exe using PyInstaller
           # Use --add-data to include the src folder so internal imports (like 'import cli') work
           pip install pyinstaller
@@ -108,43 +103,6 @@ jobs:
           tar -xf "$GITHUB_WORKSPACE/ffmpeg.tar.xz" -C "$GITHUB_WORKSPACE/ffmpeg_temp" --strip-components=1
           mv "$GITHUB_WORKSPACE/ffmpeg_temp/ffmpeg" "$GITHUB_WORKSPACE/dist/linux/bin/"
           chmod +x "$GITHUB_WORKSPACE/dist/linux/bin/ffmpeg"
-
-      - name: Cache aria2c binary (Linux)
-        if: matrix.platform == 'linux'
-        id: aria2-cache
-        uses: actions/cache@v5
-        with:
-          path: ${{ github.workspace }}/dist/linux/bin/aria2c
-          key: aria2c-linux-1.37.0
-
-      - name: Build aria2c (Linux)
-        if: matrix.platform == 'linux' && steps.aria2-cache.outputs.cache-hit != 'true'
-        run: |
-          set -e
-          sudo apt update && sudo apt install -y build-essential pkg-config libssl-dev zlib1g-dev wget
-          
-          mkdir -p "$GITHUB_WORKSPACE/dist/linux/bin"
-          cd "$GITHUB_WORKSPACE"
-          
-          wget https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0.tar.gz
-          tar -xzf aria2-1.37.0.tar.gz
-          cd aria2-1.37.0
-          
-          CFLAGS="-Os -s" LDFLAGS="-static" ./configure \
-            --enable-static --disable-shared \
-            --disable-libaria2 --without-ca-bundle \
-            --without-libnettle --without-libgcrypt \
-            --without-libssh2 --without-libexpat \
-            --without-libxml2 --without-libsqlite3 \
-            --with-openssl
-            
-          make -j"$(nproc)"
-          strip src/aria2c
-          cp src/aria2c "$GITHUB_WORKSPACE/dist/linux/bin/aria2c"
-          chmod +x "$GITHUB_WORKSPACE/dist/linux/bin/aria2c"
-          
-          cd "$GITHUB_WORKSPACE"
-          rm -rf aria2-1.37.0 aria2-1.37.0.tar.gz
 
       - name: Archive Linux Package
         if: matrix.platform == 'linux'
