@@ -161,67 +161,9 @@ jobs:
             ${{ github.workspace }}/*.zip
             ${{ github.workspace }}/*.tar.gz
 
-  docker:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      
-      - name: Get version
-        id: version
-        shell: bash
-        run: |
-          TAG="${{ github.event.inputs.tag || inputs.tag }}"
-          VERSION="${TAG#v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Download Linux Artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: linux-release
-          path: ${{ github.workspace }}/dist/linux-docker
-
-      - name: Prepare Docker build context
-        run: |
-          cd "$GITHUB_WORKSPACE/dist/linux-docker"
-          # Extract Linux artifact which now contains bin/, src/, and yt-playlist-main.py
-          tar -xzf "$GITHUB_WORKSPACE/dist/linux-docker/yt-playlist-linux-${{ steps.version.outputs.version }}.tar.gz"
-          
-          # Copy Docker-specific files
-          cp "$GITHUB_WORKSPACE/Dockerfile" .
-          cp "$GITHUB_WORKSPACE/docker-entrypoint.sh" .
-          
-          # Ensure config directory is present (not included in Linux zip by default)
-          if [ ! -d "config" ]; then cp -r "$GITHUB_WORKSPACE/config" . ; fi
-          
-          # Debug: List context to verify paths match Dockerfile expectations
-          ls -R
-
-      - name: Set docker image names
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          echo "RELEASE_IMAGE=ghcr.io/${GITHUB_ACTOR}/ytpl-Sync:${VERSION}" >> $GITHUB_ENV
-          echo "LATEST_IMAGE=ghcr.io/${GITHUB_ACTOR}/ytpl-Sync:latest" >> $GITHUB_ENV
-
-      - name: Build Docker image
-        run: |
-          docker build . -t $RELEASE_IMAGE -t $LATEST_IMAGE
-        working-directory: ${{ github.workspace }}/dist/linux-docker
-
-      - name: Save Docker images
-        run: |
-          docker save -o docker-image.tar $RELEASE_IMAGE
-          docker save -o docker-image-latest.tar $LATEST_IMAGE
-        working-directory: ${{ github.workspace }}/dist/linux-docker
-
-      - name: Upload Docker artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: docker-images
-          path: ${{ github.workspace }}/dist/linux-docker/docker-image*.tar
 
   release:
-    needs: [build, docker]
+    needs: build 
     runs-on: ubuntu-latest
     if: startsWith(github.event.inputs.tag, 'v')
     steps:
