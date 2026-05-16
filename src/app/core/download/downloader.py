@@ -68,6 +68,7 @@ class Downloader:
 
         def run():
             import yt_dlp  # type: ignore
+            from pathlib import Path
 
             class _QuietLogger:
                 def debug(self, msg):
@@ -96,6 +97,38 @@ class Downloader:
                 "no_warnings": True,
                 "logger": _QuietLogger(),
             }
+
+            progress_cb = getattr(job, "progress_callback", None)
+            if progress_cb is not None:
+                def hook(d):
+                    try:
+                        payload = {
+                            "status": d.get("status"),
+                            "downloaded_bytes": d.get("downloaded_bytes"),
+                            "total_bytes": d.get("total_bytes") or d.get("total_bytes_estimate"),
+                            "speed": d.get("speed"),
+                            "eta": d.get("eta"),
+                            "filename": d.get("filename"),
+                        }
+                        total = payload.get("total_bytes")
+                        done = payload.get("downloaded_bytes")
+                        if total and done is not None:
+                            payload["progress"] = float(done) / float(total)
+                        progress_cb(payload)
+                    except Exception:
+                        pass
+
+                ydl_opts["progress_hooks"] = [hook]
+
+            # If user provided an ffmpeg path, pass it through to yt-dlp so it doesn't rely on PATH.
+            ffmpeg_hint = getattr(job, "ffmpeg_path", None) or self.ffmpeg_path
+            if ffmpeg_hint:
+                try:
+                    p = Path(str(ffmpeg_hint))
+                    if p.exists():
+                        ydl_opts["ffmpeg_location"] = str(p)
+                except Exception:
+                    pass
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[attr-defined]
                 ydl.download([job.url])

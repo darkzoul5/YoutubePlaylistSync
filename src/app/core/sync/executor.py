@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 import shutil
 from pathlib import Path
 from typing import Iterable, List
@@ -22,7 +23,24 @@ class ActionExecutor:
         self.bus = event_bus
 
     async def execute(self, actions: Iterable[SyncAction], playlist_cfg: dict) -> None:
-        self._preflight_dependencies(actions, playlist_cfg)
+        actions_list = list(actions)
+        playlist_id = extract_playlist_id(playlist_cfg.get("url", "")) or playlist_cfg.get("url", "")
+        start = time.monotonic()
+        counts: dict[str, int] = {}
+        for a in actions_list:
+            counts[a.type.name] = counts.get(a.type.name, 0) + 1
+
+        if self.bus:
+            await self.bus.publish(
+                "SyncStarted",
+                {
+                    "playlist_id": playlist_id,
+                    "actions_total": sum(counts.values()),
+                    "counts": dict(counts),
+                },
+            )
+
+        self._preflight_dependencies(actions_list, playlist_cfg)
 
         save_path = Path(playlist_cfg.get("save_path", "./downloads")).resolve()
         mode = playlist_cfg.get("download_mode", "video")
@@ -34,13 +52,23 @@ class ActionExecutor:
         video_root.mkdir(parents=True, exist_ok=True)
 
         # First, handle renames safely in batch per extension
-        await self._apply_renames(actions, audio_root, video_root, playlist_cfg)
+        await self._apply_renames(actions_list, audio_root, video_root, playlist_cfg)
 
         # Then, recycle deletions
-        self._apply_deletions(actions, audio_root, video_root, playlist_cfg)
+        self._apply_deletions(actions_list, audio_root, video_root, playlist_cfg)
 
         # Finally, perform downloads concurrently
-        await self._apply_downloads(actions, mode, audio_root, video_root, playlist_cfg)
+        await self._apply_downloads(actions_list, mode, audio_root, video_root, playlist_cfg)
+
+        duration_s = round(time.monotonic() - start, 3)
+        summary = {
+            "playlist_id": playlist_id,
+            "duration_s": duration_s,
+            "counts": dict(counts),
+        }
+        if self.bus:
+            await self.bus.publish("SyncSummary", dict(summary))
+            await self.bus.publish("SyncFinished", dict(summary))
 
     def _preflight_dependencies(self, actions: Iterable[SyncAction], playlist_cfg: dict) -> None:
         """
@@ -128,6 +156,7 @@ class ActionExecutor:
 
     async def _apply_downloads(self, actions: Iterable[SyncAction], mode: str, audio_root: Path, video_root: Path, playlist_cfg: dict) -> None:
         playlist_id = extract_playlist_id(playlist_cfg.get("url", "")) or playlist_cfg.get("url", "")
+        loop = asyncio.get_running_loop()
         concurrency_cfg = playlist_cfg.get("max_parallel_downloads", self.concurrency)
         try:
             concurrency = int(concurrency_cfg) if concurrency_cfg is not None else self.concurrency
@@ -147,6 +176,18 @@ class ActionExecutor:
             retry_delay_seconds = 1.5
 
         async def worker(job: DownloadJob):
+            job.playlist_id = playlist_id
+
+            if self.bus:
+                def _progress_cb(info: dict):
+                    payload = dict(info)
+                    payload.setdefault("playlist_id", playlist_id)
+                    if job.item:
+                        payload.setdefault("video_id", job.item.video_id)
+                    loop.call_soon_threadsafe(asyncio.create_task, self.bus.publish("DownloadProgress", payload))
+
+                job.progress_callback = _progress_cb
+
             if self.bus and job.item:
                 await self.bus.publish("DownloadStarted", {"playlist_id": playlist_id, "video_id": job.item.video_id, "target": str(job.output_path)})
             await default_worker(job, max_retries=retry_max_retries, delay_seconds=retry_delay_seconds)
