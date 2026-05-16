@@ -36,6 +36,7 @@ class Downloader:
 
         cap = parse_height_cap(max_download_quality)
         if cap is not None:
+            #if the requested cap isn't available, we still download the best mp4.
             return f"best[ext=mp4][acodec!=none][vcodec!=none][height<={cap}]/best[ext=mp4][height<={cap}]/best[ext=mp4]"
         return "best[ext=mp4][acodec!=none][vcodec!=none]/best[ext=mp4]"
 

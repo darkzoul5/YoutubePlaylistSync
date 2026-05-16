@@ -47,7 +47,8 @@ Create/edit `config/yt-playlist-config.json`:
 
 `max_download_quality`:
 
-- Limits yt-dlp download quality (e.g. `"1080p"`, `"720p"`). This only affects the downloaded video format selection.
+- Limits yt-dlp download quality (e.g. `"1080p"`, `"720p"`, `"360p"`). This only affects the downloaded video format selection.
+- If the requested max quality isn't available for a video, the best available quality is chosen.
 
 `download_mode`:
 
