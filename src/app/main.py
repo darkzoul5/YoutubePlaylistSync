@@ -1,18 +1,19 @@
+"""
+Entry point for the backend (no GUI).
+
+For now, this verifies configuration + database setup and can run a one-off sync.
+Future iterations will wire up scheduler and a GUI.
+"""
+
 from __future__ import annotations
 
-"""
-Entry point for the new backend (no GUI). For now, this only verifies
-that configuration and database setup work. Future iterations will wire
-up scanner, diff engine, queue, and scheduler.
-"""
-
+import asyncio
 from pathlib import Path
 
 from .config.settings import Settings
 from .core.database.db import Database
 from .core.sync.service import SyncService
 from .core.sync.executor import ActionExecutor
-from .core.models import SyncActionType
 from .core.utils.yt import extract_playlist_id
 from .core.utils.deps import DependencyError
 
@@ -37,7 +38,6 @@ def bootstrap(db_path: Path | None = None) -> None:
                 summary = ", ".join(f"{k.name}:{v}" for k, v in counts.items())
                 print(f"Plan → {summary}")
                 # Execute
-                import asyncio
                 try:
                     asyncio.run(executor.execute(actions, pl))
                 except DependencyError as e:
