@@ -19,21 +19,21 @@ Local-first YouTube playlist synchronization client.
 ## Requirements
 
 - Python 3.10+
-- `yt-dlp` (pip)
-- `ffmpeg` (only needed for audio extraction / "both" mode)
+- `ffmpeg` (needed for `audio` and `both` modes)
 
-Install:
+Quick start:
 
-```bash
-pip install -U yt-dlp
-```
+Download the latest release from [releases](https://github.com/darkzoul5/YoutubePlaylistSyncThing/releases) page
 
 ## Configure
 
-Create/edit `config/yt-playlist-config.json`:
+On first run, the app will auto-create a default `yt-playlist-config.json` in the project root (if missing).
+
+Create/edit `yt-playlist-config.json`:
 
 ```json
 {
+  "config_path": null,
   "playlists": [
     {
       "url": "https://www.youtube.com/playlist?list=YOUR_PLAYLIST_ID",
@@ -44,6 +44,9 @@ Create/edit `config/yt-playlist-config.json`:
   "ffmpeg_path": "./ffmpeg"
 }
 ```
+
+`config_path` (optional):
+- If set to a string path, the app loads the config from that file instead (path is relative to the current config file).
 
 `download_mode`:
 - `video`: download playlist videos as muxed `.mp4` (no ffmpeg processing)
