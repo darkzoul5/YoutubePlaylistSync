@@ -14,6 +14,7 @@ from ..database.db import Database
 from ..utils.yt import extract_playlist_id
 from ..events.event_bus import EventBus
 from ..utils.deps import ensure_ffmpeg_available, ensure_yt_dlp_available
+from ..utils.rate_limit import is_youtube_rate_limit_error
 
 
 class ActionExecutor:
@@ -22,7 +23,7 @@ class ActionExecutor:
         self.db = db
         self.bus = event_bus
 
-    async def execute(self, actions: Iterable[SyncAction], playlist_cfg: dict) -> None:
+    async def execute(self, actions: Iterable[SyncAction], playlist_cfg: dict, *, cancel_check=None, pause_check=None) -> None:
         actions_list = list(actions)
         playlist_id = extract_playlist_id(playlist_cfg.get("url", "")) or playlist_cfg.get("url", "")
         start = time.monotonic()
@@ -40,6 +41,8 @@ class ActionExecutor:
                 },
             )
 
+        if not await self._wait_if_paused(pause_check, cancel_check):
+            return
         self._preflight_dependencies(actions_list, playlist_cfg)
 
         save_path = Path(playlist_cfg.get("save_path", "./downloads")).resolve()
@@ -52,23 +55,53 @@ class ActionExecutor:
         video_root.mkdir(parents=True, exist_ok=True)
 
         # First, handle renames safely in batch per extension
+        if not await self._wait_if_paused(pause_check, cancel_check):
+            return
         await self._apply_renames(actions_list, audio_root, video_root, playlist_cfg)
 
         # Then, recycle deletions
+        if not await self._wait_if_paused(pause_check, cancel_check):
+            return
         self._apply_deletions(actions_list, audio_root, video_root, playlist_cfg)
 
         # Finally, perform downloads concurrently
-        await self._apply_downloads(actions_list, mode, audio_root, video_root, playlist_cfg)
+        if not await self._wait_if_paused(pause_check, cancel_check):
+            return
+        await self._apply_downloads(
+            actions_list,
+            mode,
+            audio_root,
+            video_root,
+            playlist_cfg,
+            cancel_check=cancel_check,
+            pause_check=pause_check,
+        )
 
         duration_s = round(time.monotonic() - start, 3)
+        # Persist last sync timestamp (single source of truth for CLI/GUI/automation).
+        try:
+            self.db.set_playlist_last_sync(playlist_id)
+            last_sync = self.db.get_playlist_last_sync(playlist_id)
+        except Exception:
+            last_sync = None
         summary = {
             "playlist_id": playlist_id,
             "duration_s": duration_s,
             "counts": dict(counts),
+            "last_sync": last_sync,
         }
         if self.bus:
             await self.bus.publish("SyncSummary", dict(summary))
             await self.bus.publish("SyncFinished", dict(summary))
+
+    async def _wait_if_paused(self, pause_check, cancel_check) -> bool:
+        if not callable(pause_check):
+            return True
+        while pause_check():
+            if callable(cancel_check) and cancel_check():
+                return False
+            await asyncio.sleep(0.1)
+        return True
 
     def _preflight_dependencies(self, actions: Iterable[SyncAction], playlist_cfg: dict) -> None:
         """
@@ -154,7 +187,17 @@ class ActionExecutor:
                 if self.bus:
                     asyncio.create_task(self.bus.publish("FileRecycled", {"playlist_id": playlist_id, "video_id": a.item.video_id, "name": a.from_name}))
 
-    async def _apply_downloads(self, actions: Iterable[SyncAction], mode: str, audio_root: Path, video_root: Path, playlist_cfg: dict) -> None:
+    async def _apply_downloads(
+        self,
+        actions: Iterable[SyncAction],
+        mode: str,
+        audio_root: Path,
+        video_root: Path,
+        playlist_cfg: dict,
+        *,
+        cancel_check=None,
+        pause_check=None,
+    ) -> None:
         playlist_id = extract_playlist_id(playlist_cfg.get("url", "")) or playlist_cfg.get("url", "")
         loop = asyncio.get_running_loop()
         concurrency_cfg = playlist_cfg.get("max_parallel_downloads", self.concurrency)
@@ -175,8 +218,22 @@ class ActionExecutor:
         except Exception:
             retry_delay_seconds = 1.5
 
+        delay_cfg = playlist_cfg.get("delay_between_downloads_seconds", 0.0)
+        try:
+            delay_between_downloads_seconds = float(delay_cfg) if delay_cfg is not None else 0.0
+        except Exception:
+            delay_between_downloads_seconds = 0.0
+
+        rate_limit_pause = asyncio.Event()
+        rate_limit_emitted = False
+
         async def worker(job: DownloadJob):
+            nonlocal rate_limit_emitted
             job.playlist_id = playlist_id
+            job.cancel_check = cancel_check
+            if not await self._wait_if_paused(pause_check, cancel_check):
+                job.error = "cancelled"
+                return
 
             if self.bus:
                 def _progress_cb(info: dict):
@@ -191,6 +248,23 @@ class ActionExecutor:
             if self.bus and job.item:
                 await self.bus.publish("DownloadStarted", {"playlist_id": playlist_id, "video_id": job.item.video_id, "target": str(job.output_path)})
             await default_worker(job, max_retries=retry_max_retries, delay_seconds=retry_delay_seconds)
+
+            # If we hit YouTube bot-check / rate-limit, pause the whole playlist sync:
+            # - stop scheduling/processing more jobs
+            # - surface a single SyncPaused event
+            if is_youtube_rate_limit_error(getattr(job, "error", None)):
+                rate_limit_pause.set()
+                if self.bus and not rate_limit_emitted:
+                    rate_limit_emitted = True
+                    await self.bus.publish(
+                        "SyncPaused",
+                        {"playlist_id": playlist_id, "video_id": getattr(getattr(job, "item", None), "video_id", None), "reason": "paused due to youtube rate limits"},
+                    )
+                return
+
+            if delay_between_downloads_seconds > 0 and not (callable(cancel_check) and cancel_check()):
+                # Gentle throttle between jobs to reduce rate limiting.
+                await asyncio.sleep(delay_between_downloads_seconds)
 
         await queue.start(worker)
         try:
@@ -214,6 +288,12 @@ class ActionExecutor:
             temp_video_root.mkdir(parents=True, exist_ok=True)
 
             for a in actions:
+                if callable(cancel_check) and cancel_check():
+                    break
+                if not await self._wait_if_paused(pause_check, cancel_check):
+                    break
+                if rate_limit_pause.is_set():
+                    break
                 if a.type != SyncActionType.DOWNLOAD or not a.item or not a.to_name:
                     continue
                 vid = a.item.video_id
@@ -280,8 +360,22 @@ class ActionExecutor:
                     jobs.append(job)
                     await queue.enqueue(job)
         finally:
-            await queue.join()  # wait for all jobs
-            await queue.stop()
+            join_task = asyncio.create_task(queue.join())
+            try:
+                while not join_task.done():
+                    if callable(cancel_check) and cancel_check():
+                        join_task.cancel()
+                        break
+                    if callable(pause_check) and pause_check():
+                        # Pause requested: stop starting more work and return control.
+                        join_task.cancel()
+                        break
+                    if rate_limit_pause.is_set():
+                        join_task.cancel()
+                        break
+                    await asyncio.sleep(0.1)
+            finally:
+                await queue.stop()
 
         # Persist DB updates for completed jobs
         for job in locals().get("jobs", []):
@@ -298,6 +392,13 @@ class ActionExecutor:
                         # Ensure not marked as downloaded if failed
                         self.db.mark_downloaded(playlist_id, job.item.video_id, False)
                         if self.bus:
-                            await self.bus.publish("DownloadFailed", {"playlist_id": playlist_id, "video_id": job.item.video_id, "error": job.error or "unknown"})
+                            err = job.error or "unknown"
+                            if is_youtube_rate_limit_error(err):
+                                await self.bus.publish(
+                                    "DownloadFailed",
+                                    {"playlist_id": playlist_id, "video_id": job.item.video_id, "error": "paused due to youtube rate limits"},
+                                )
+                            else:
+                                await self.bus.publish("DownloadFailed", {"playlist_id": playlist_id, "video_id": job.item.video_id, "error": err})
                 except Exception:
                     pass

@@ -31,6 +31,7 @@ class DownloadJob:
     max_download_quality: Optional[str] = None
     playlist_id: Optional[str] = None
     progress_callback: Optional[Callable[[dict[str, Any]], None]] = None
+    cancel_check: Optional[Callable[[], bool]] = None
     audio_output_path: Optional[Path] = None  # when mode=video and we also want mp3
     keep_video: bool = True
 

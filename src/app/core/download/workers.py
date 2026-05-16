@@ -4,6 +4,7 @@ import asyncio
 import logging
 from .downloader import Downloader
 from .queue_manager import DownloadJob, JobState
+from ..utils.rate_limit import is_youtube_rate_limit_error
 
 
 async def default_worker(job: DownloadJob, *, max_retries: int = 2, delay_seconds: float = 1.5):
@@ -12,7 +13,15 @@ async def default_worker(job: DownloadJob, *, max_retries: int = 2, delay_second
     attempt = 0
     while attempt <= max_retries:
         await dl.handle_job(job)
+        if job.state == JobState.CANCELLED:
+            return
         if job.state == JobState.COMPLETED:
+            return
+        if is_youtube_rate_limit_error(job.error):
+            # Do not retry bot-check/rate-limit style errors; caller will pause.
+            return
+        if (job.error or "").strip().lower() == "cancelled":
+            job.state = JobState.CANCELLED
             return
         attempt += 1
         if attempt <= max_retries:

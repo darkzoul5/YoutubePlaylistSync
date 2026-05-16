@@ -46,6 +46,11 @@ class Downloader:
 
     async def handle_job(self, job: DownloadJob):
         try:
+            cancel_check = getattr(job, "cancel_check", None)
+            if callable(cancel_check) and cancel_check():
+                job.state = JobState.CANCELLED
+                job.error = "cancelled"
+                return
             job.state = JobState.DOWNLOADING
             await self._download(job)
             # Optional local audio extraction when requested
@@ -69,6 +74,10 @@ class Downloader:
         def run():
             import yt_dlp  # type: ignore
             from pathlib import Path
+            try:
+                from yt_dlp.utils import DownloadCancelled  # type: ignore
+            except Exception:  # pragma: no cover - optional
+                DownloadCancelled = Exception  # type: ignore[misc,assignment]
 
             class _QuietLogger:
                 def debug(self, msg):
@@ -99,9 +108,13 @@ class Downloader:
             }
 
             progress_cb = getattr(job, "progress_callback", None)
+            cancel_check = getattr(job, "cancel_check", None)
             if progress_cb is not None:
                 def hook(d):
                     try:
+                        if callable(cancel_check) and cancel_check():
+                            raise DownloadCancelled("cancelled")
+                        import time
                         payload = {
                             "status": d.get("status"),
                             "downloaded_bytes": d.get("downloaded_bytes"),
@@ -114,7 +127,27 @@ class Downloader:
                         done = payload.get("downloaded_bytes")
                         if total and done is not None:
                             payload["progress"] = float(done) / float(total)
-                        progress_cb(payload)
+
+                        # Throttle progress events to avoid freezing the GUI event loop.
+                        # Always forward terminal states.
+                        status = str(payload.get("status") or "")
+                        now = time.monotonic()
+                        last_ts = float(getattr(job, "_last_progress_emit_ts", 0.0) or 0.0)
+                        last_pct = float(getattr(job, "_last_progress_emit_pct", -1.0) or -1.0)
+                        pct = float(payload.get("progress")) if isinstance(payload.get("progress"), (int, float)) else None
+
+                        should_emit = status in {"finished", "error"}
+                        if not should_emit:
+                            if now - last_ts >= 0.25:
+                                should_emit = True
+                            elif pct is not None and (last_pct < 0 or abs(pct - last_pct) >= 0.01):
+                                should_emit = True
+
+                        if should_emit:
+                            setattr(job, "_last_progress_emit_ts", now)
+                            if pct is not None:
+                                setattr(job, "_last_progress_emit_pct", pct)
+                            progress_cb(payload)
                     except Exception:
                         pass
 

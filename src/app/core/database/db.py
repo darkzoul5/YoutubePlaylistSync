@@ -99,3 +99,10 @@ class Database:
                 "UPDATE playlists SET last_sync = datetime('now') WHERE id = ?",
                 (playlist_id,),
             )
+
+    def get_playlist_last_sync(self, playlist_id: str) -> str | None:
+        cur = self._conn.execute("SELECT last_sync FROM playlists WHERE id = ?", (playlist_id,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        return row["last_sync"]
