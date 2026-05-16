@@ -17,6 +17,7 @@ jobs:
       INTEGRATION_TEST: '1'
       # Used by the integration tests to locate ffmpeg reliably.
       FFMPEG_PATH: '/usr/bin/ffmpeg'
+      TEST_PLAYLIST_URL: 'https://www.youtube.com/playlist?list=PLUmRr21IDW9WCW87FnbWAbIwwZHbf-lAz'
 
     steps:
       - name: Checkout repository

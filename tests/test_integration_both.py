@@ -9,12 +9,14 @@ from src.app.core.sync.executor import ActionExecutor
 from src.app.core.sync.service import SyncService
 
 
-PLAYLIST_URL = "https://www.youtube.com/playlist?list=PLUmRr21IDW9WCW87FnbWAbIwwZHbf-lAz"
+PLAYLIST_URL = os.getenv("TEST_PLAYLIST_URL")
 
 
 def _require_integration():
     if not os.getenv("INTEGRATION_TEST"):
         pytest.skip("Set INTEGRATION_TEST=1 to enable real download tests")
+    if not PLAYLIST_URL:
+        pytest.skip("Set TEST_PLAYLIST_URL to enable real download tests")
 
 
 @pytest.mark.integration

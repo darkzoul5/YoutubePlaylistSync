@@ -3,9 +3,11 @@ name: Unit tests
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: 
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,14 +24,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Create venv and install project
+      - name: Install project
         run: |
           set -euo pipefail
-          python3 -m venv .venv
-          . .venv/bin/activate
           python -m pip install --upgrade pip
           # Install project (editable) and test deps
-          python -m pip install -e .[test] || python -m pip install -e .
+          python -m pip install -e .
           python -m pip install pytest
 
       - name: Run tests
@@ -37,5 +37,4 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           set -euo pipefail
-          . .venv/bin/activate
           pytest -q
