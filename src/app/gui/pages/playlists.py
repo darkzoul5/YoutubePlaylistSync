@@ -433,7 +433,7 @@ class _PlaylistCard(QtWidgets.QFrame):
         self._mode.setCurrentText(row.download_mode or "video")
 
         self._quality = QtWidgets.QComboBox()
-        self._quality.addItems(["1080p", "720p", "480p", "360p"])
+        self._quality.addItems(["best", "2160p", "1440p", "1080p", "720p", "480p", "360p"])
         self._quality.setEditable(False)
         self._quality.setCurrentText(row.max_download_quality or "1080p")
 

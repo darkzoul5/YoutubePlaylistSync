@@ -60,7 +60,8 @@ Defaults:
 
 `max_download_quality`:
 
-- Limits yt-dlp download quality (e.g. `"1080p"`, `"720p"`, `"360p"`). This only affects the downloaded video format selection.
+- Limits yt-dlp download quality (e.g. `"2160p"`, `"1440p"`, `"1080p"`, `"720p"`, `"360p"`). This only affects the downloaded video format selection.
+- Use `"best"` (or `"auto"`) for no height cap (highest available muxed MP4).
 - If the requested max quality isn't available for a video, the best available quality is chosen.
 
 `download_mode`:
