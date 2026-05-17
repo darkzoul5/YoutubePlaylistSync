@@ -123,14 +123,15 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "assets/icon.ico" --add-data "assets/icon.png;assets" --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
+          $ws = "${{ github.workspace }}"
+          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "$ws/assets/icon.ico" --add-data "$ws/assets/icon.png;assets" --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
 
       - name: Build binary (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "assets/icon.png" --add-data "assets/icon.png:assets" --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
+          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "${GITHUB_WORKSPACE}/assets/icon.png" --add-data "${GITHUB_WORKSPACE}/assets/icon.png:assets" --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
 
       - name: Stage package
         shell: bash
