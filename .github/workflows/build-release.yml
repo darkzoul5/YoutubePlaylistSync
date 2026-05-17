@@ -188,6 +188,8 @@ jobs:
           $ffmpegExe = Get-ChildItem -Path "ffmpeg_tmp" -Filter "ffmpeg.exe" -Recurse | Select-Object -First 1
           if (-not $ffmpegExe) { throw "ffmpeg.exe not found in archive" }
           Copy-Item $ffmpegExe.FullName "package/bin/ffmpeg.exe"
+          Remove-Item -Force "ffmpeg.zip"
+          Remove-Item -Recurse -Force "ffmpeg_tmp"
 
       - name: Bundle FFmpeg (Linux)
         if: runner.os == 'Linux' && matrix.ffmpeg == 'bundled'
@@ -207,7 +209,11 @@ jobs:
           $ErrorActionPreference = "Stop"
           $version = "${{ steps.version.outputs.version }}"
           $variant = "${{ matrix.ffmpeg }}"
-          $name = "ytpl-sync-windows-$version-$variant.zip"
+          if ($variant -eq "bundled") {
+            $name = "ytpl-sync-windows-$version-ffmpeg.zip"
+          } else {
+            $name = "ytpl-sync-windows-$version.zip"
+          }
           Compress-Archive -Path "package/*" -DestinationPath $name
 
       - name: Archive (Linux)
@@ -217,7 +223,11 @@ jobs:
           set -euo pipefail
           version="${{ steps.version.outputs.version }}"
           variant="${{ matrix.ffmpeg }}"
-          name="ytpl-sync-linux-${version}-${variant}.tar.gz"
+          if [[ "$variant" == "bundled" ]]; then
+            name="ytpl-sync-linux-${version}-ffmpeg.tar.gz"
+          else
+            name="ytpl-sync-linux-${version}.tar.gz"
+          fi
           tar -C package -czf "$name" .
 
       - name: Upload artifact
@@ -225,8 +235,8 @@ jobs:
         with:
           name: packages-${{ runner.os }}-${{ matrix.ffmpeg }}
           path: |
-            *.zip
-            *.tar.gz
+            ytpl-sync-*.zip
+            ytpl-sync-*.tar.gz
 
   release:
     name: Create Release
