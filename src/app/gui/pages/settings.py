@@ -49,6 +49,19 @@ class SettingsPage(QtWidgets.QWidget):
         form_box.setLayout(form)
         layout.addWidget(form_box)
 
+        tray_form = QtWidgets.QFormLayout()
+        self._close_to_tray = QtWidgets.QCheckBox()
+        self._close_to_tray.setChecked(True)
+        tray_form.addRow("close_to_tray", self._close_to_tray)
+
+        self._minimize_to_tray = QtWidgets.QCheckBox()
+        self._minimize_to_tray.setChecked(False)
+        tray_form.addRow("minimize_to_tray", self._minimize_to_tray)
+
+        tray_box = QtWidgets.QGroupBox("Tray behavior")
+        tray_box.setLayout(tray_form)
+        layout.addWidget(tray_box)
+
         btns = QtWidgets.QHBoxLayout()
         self._reload_btn = QtWidgets.QPushButton("Reload")
         self._reload_btn.clicked.connect(self.reload_from_config)
@@ -75,6 +88,8 @@ class SettingsPage(QtWidgets.QWidget):
         self._retry_max.valueChanged.connect(lambda _v: self._schedule_autosave())
         self._retry_delay.valueChanged.connect(lambda _v: self._schedule_autosave())
         self._download_delay.valueChanged.connect(lambda _v: self._schedule_autosave())
+        self._close_to_tray.stateChanged.connect(lambda _v: self._schedule_autosave())
+        self._minimize_to_tray.stateChanged.connect(lambda _v: self._schedule_autosave())
 
     def set_config_path(self, path: Path) -> None:
         self._config_path = path
@@ -95,6 +110,13 @@ class SettingsPage(QtWidgets.QWidget):
             self._retry_max.setValue(int(self._config.get("retry_max_retries") or 2))
             self._retry_delay.setValue(float(self._config.get("retry_delay_seconds") or 1.5))
             self._download_delay.setValue(float(self._config.get("delay_between_downloads_seconds") or 0.0))
+
+            ui = self._config.get("ui")
+            ui = ui if isinstance(ui, dict) else {}
+            tray = ui.get("tray")
+            tray = tray if isinstance(tray, dict) else {}
+            self._close_to_tray.setChecked(bool(tray.get("close_to_tray", True)))
+            self._minimize_to_tray.setChecked(bool(tray.get("minimize_to_tray", False)))
 
             self._status.setText(f"Loaded settings from {self._config_path}.")
         except Exception as exc:
@@ -119,6 +141,16 @@ class SettingsPage(QtWidgets.QWidget):
             data["retry_max_retries"] = int(self._retry_max.value())
             data["retry_delay_seconds"] = float(self._retry_delay.value())
             data["delay_between_downloads_seconds"] = float(self._download_delay.value())
+
+            ui = data.get("ui")
+            ui = ui if isinstance(ui, dict) else {}
+            tray = ui.get("tray")
+            tray = tray if isinstance(tray, dict) else {}
+            tray["close_to_tray"] = bool(self._close_to_tray.isChecked())
+            tray["minimize_to_tray"] = bool(self._minimize_to_tray.isChecked())
+            ui["tray"] = tray
+            data["ui"] = ui
+
             save_config(self._config_path, data)
             self._status.setText(f"Saved settings to {self._config_path}.")
         except Exception as exc:

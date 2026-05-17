@@ -3,6 +3,12 @@
   "max_parallel_downloads": 2,
   "retry_max_retries": 2,
   "retry_delay_seconds": 1.5,
+  "ui": {
+    "tray": {
+      "close_to_tray": true,
+      "minimize_to_tray": false
+    }
+  },
   "playlists": [
     {
       "url": "https://www.youtube.com/playlist?list=YOUR_PLAYLIST_ID_HERE",

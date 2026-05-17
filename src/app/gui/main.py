@@ -8,6 +8,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ..config.settings import Settings
 from ..core.events.event_bus import EventBus
 from .bus_bridge import BusBridge
+from .app_icon import load_app_icon
+from .config_store import load_config
 from .runner import SyncRequest, SyncRunner
 from .pages.playlists import PlaylistManagerPage
 from .pages.queue import QueuePage
@@ -20,6 +22,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.setWindowTitle("ytpl-sync")
         self.resize(1100, 700)
+        self.setWindowIcon(load_app_icon())
 
         self._settings = Settings()
         self._bus = EventBus()
@@ -29,6 +32,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._runner: SyncRunner | None = None
         self._cancel_flag: threading.Event | None = None
         self._pause_flag: threading.Event | None = None
+        self._tray: QtWidgets.QSystemTrayIcon | None = None
+        self._tray_notified = False
 
         # Sidebar navigation
         self._nav = QtWidgets.QListWidget()
@@ -87,6 +92,109 @@ class MainWindow(QtWidgets.QMainWindow):
         self._playlists_page.resume_requested.connect(self._resume_sync)
 
         self._refresh_queue_labels()
+        self._init_tray()
+
+    def _tray_config(self) -> dict:
+        # Read from disk so toggles apply immediately (no restart required).
+        try:
+            cfg_path = getattr(self._settings, "path", None)
+            if cfg_path is None:
+                return {}
+            raw = load_config(cfg_path).data
+            ui = raw.get("ui")
+            ui = ui if isinstance(ui, dict) else {}
+            tray = ui.get("tray")
+            tray = tray if isinstance(tray, dict) else {}
+            return dict(tray)
+        except Exception:
+            return {}
+
+    def _close_to_tray_enabled(self) -> bool:
+        return bool(self._tray_config().get("close_to_tray", True))
+
+    def _minimize_to_tray_enabled(self) -> bool:
+        return bool(self._tray_config().get("minimize_to_tray", False))
+
+    def _init_tray(self) -> None:
+        # Tray support is optional and platform-dependent (e.g., some Linux DEs).
+        try:
+            if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
+                return
+        except Exception:
+            return
+
+        icon = load_app_icon()
+        tray = QtWidgets.QSystemTrayIcon(icon, self)
+        tray.setToolTip("ytpl-sync")
+
+        menu = QtWidgets.QMenu()
+        act_toggle = menu.addAction("Show/Hide")
+        act_quit = menu.addAction("Quit")
+        tray.setContextMenu(menu)
+
+        act_toggle.triggered.connect(self._toggle_visible)
+        act_quit.triggered.connect(self._quit_from_tray)
+        tray.activated.connect(self._on_tray_activated)
+
+        tray.show()
+        self._tray = tray
+
+    def _toggle_visible(self) -> None:
+        if self.isVisible():
+            self.hide()
+        else:
+            self.show()
+            self.raise_()
+            self.activateWindow()
+
+    def _quit_from_tray(self) -> None:
+        # Ensure the closeEvent doesn't just hide the window.
+        self._tray = None
+        QtWidgets.QApplication.quit()
+
+    def _on_tray_activated(self, reason: QtWidgets.QSystemTrayIcon.ActivationReason) -> None:
+        if reason in (
+            QtWidgets.QSystemTrayIcon.ActivationReason.Trigger,
+            QtWidgets.QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            self._toggle_visible()
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:  # type: ignore[override]
+        # If tray is active and configured, close-to-tray.
+        if self._tray is not None and self._close_to_tray_enabled():
+            event.ignore()
+            self.hide()
+            if not self._tray_notified:
+                self._tray_notified = True
+                try:
+                    self._tray.showMessage(
+                        "ytpl-sync",
+                        "Still running in the tray. Use the tray icon menu to quit.",
+                        QtWidgets.QSystemTrayIcon.MessageIcon.Information,
+                        3000,
+                    )
+                except Exception:
+                    pass
+            return
+        if self._tray is not None and not self._close_to_tray_enabled():
+            # Explicitly quit, because the app may be configured to keep running without windows.
+            try:
+                event.accept()
+            except Exception:
+                pass
+            QtWidgets.QApplication.quit()
+            return
+        super().closeEvent(event)
+
+    def changeEvent(self, event: QtCore.QEvent) -> None:  # type: ignore[override]
+        try:
+            if event.type() == QtCore.QEvent.Type.WindowStateChange:
+                if self._tray is not None and self._minimize_to_tray_enabled():
+                    if bool(self.windowState() & QtCore.Qt.WindowState.WindowMinimized):
+                        QtCore.QTimer.singleShot(0, self.hide)
+        except Exception:
+            pass
+        super().changeEvent(event)
 
     def _refresh_queue_labels(self) -> None:
         try:
@@ -270,7 +378,8 @@ def main() -> int:
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("ytpl-sync")
     app.setOrganizationName("ytpl-sync")
-    app.setWindowIcon(QtGui.QIcon())
+    app.setWindowIcon(load_app_icon())
+    app.setQuitOnLastWindowClosed(False)
 
     # Avoid Qt warnings when a font with invalid point size is inherited from the environment.
     f = app.font()
