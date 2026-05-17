@@ -107,7 +107,7 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-python@v6 
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip" 
@@ -233,16 +233,46 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
+      - name: Generate release notes (since last tag)
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+
+          prev_tag="$(git tag --sort=-creatordate | grep -Fxv "$TAG" | head -n 1 || true)"
+
+          {
+            echo "## Changes"
+            echo
+            if [[ -n "$prev_tag" ]]; then
+              echo "Compared to \`$prev_tag\`:"
+              echo
+              git log "${prev_tag}..${TAG}" --no-merges --pretty=format:'- %s (%h)' || true
+            else
+              echo "First tagged release:"
+              echo
+              git log "${TAG}" --no-merges --pretty=format:'- %s (%h)' || true
+            fi
+            echo
+          } > release-notes.md
+
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.tag }}
           draft: ${{ inputs.draft }}
+          body_path: release-notes.md
           files: |
             artifacts/**/*.zip
             artifacts/**/*.tar.gz
