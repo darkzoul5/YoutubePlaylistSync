@@ -253,7 +253,7 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate release notes (since last tag)
+      - name: Generate release notes
         shell: bash
         env:
           TAG: ${{ inputs.tag }}
@@ -261,10 +261,13 @@ jobs:
           set -euo pipefail
           git fetch --tags --force
 
+          VERSION="${TAG#v}"
+          REPO="${GITHUB_REPOSITORY}"
+
           prev_tag="$(git tag --sort=-creatordate | grep -Fxv "$TAG" | head -n 1 || true)"
 
           {
-            echo "## Changes"
+            echo "### Changes"
             echo
             if [[ -n "$prev_tag" ]]; then
               echo "Compared to \`$prev_tag\`:"
@@ -275,6 +278,15 @@ jobs:
               echo
               git log "${TAG}" --no-merges --pretty=format:'- %s (%h)' || true
             fi
+
+            echo
+            echo
+            echo "### Reports"
+            echo "![Downloads](https://img.shields.io/github/downloads/${REPO}/${TAG}/total?style=flat-square&logo=github&label=Downloads)"
+            echo "![Linux FFmpeg](https://img.shields.io/github/downloads/${REPO}/${TAG}/ytpl-sync-linux-${VERSION}-ffmpeg.tar.gz?style=flat-square&label=Linux+FFmpeg)"
+            echo "![Linux](https://img.shields.io/github/downloads/${REPO}/${TAG}/ytpl-sync-linux-${VERSION}.tar.gz?style=flat-square&label=Linux)"
+            echo "![Windows FFmpeg](https://img.shields.io/github/downloads/${REPO}/${TAG}/ytpl-sync-windows-${VERSION}-ffmpeg.zip?style=flat-square&label=Windows+FFmpeg)"
+            echo "![Windows](https://img.shields.io/github/downloads/${REPO}/${TAG}/ytpl-sync-windows-${VERSION}.zip?style=flat-square&label=Windows)"
             echo
           } > release-notes.md
 
