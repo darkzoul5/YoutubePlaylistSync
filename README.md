@@ -1,6 +1,6 @@
 # YouTube Playlist Sync
 
-![Release](https://img.shields.io/github/v/release/darkzoul5/YoutubePlaylistSync?style=flat-square&label=version)
+![Release](https://img.shields.io/github/v/release/darkzoul5/YoutubePlaylistSync?style=flat-square&label=Release)
 [![Build Release](https://github.com/darkzoul5/YoutubePlaylistDownloader/actions/workflows/build-release.yml/badge.svg)](https://github.com/darkzoul5/YoutubePlaylistDownloader/actions/workflows/build-release.yml)
 [![Unit tests](https://github.com/darkzoul5/YoutubePlaylistDownloader/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/darkzoul5/YoutubePlaylistDownloader/actions/workflows/unit-tests.yml)
 
