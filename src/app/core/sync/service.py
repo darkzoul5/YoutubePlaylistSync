@@ -13,6 +13,13 @@ from ..utils.yt import extract_playlist_id
 
 
 class SyncService:
+    """High-level orchestration for a single playlist sync pass.
+
+    The service pulls the latest remote playlist snapshot, persists the
+    playlist and item metadata in the database, and asks the diff engine to
+    compare the remote state with the local filesystem.
+    """
+
     def __init__(self, db: Database) -> None:
         self.db = db
         self.scanner = PlaylistScanner()
@@ -28,6 +35,12 @@ class SyncService:
         return [".mp4"]
 
     def sync_from_config(self, playlist_cfg: dict) -> List[SyncAction]:
+        """Return the sync actions required to bring one playlist in sync.
+
+        This method does not apply any changes itself. It normalizes the
+        configuration, refreshes the playlist/item records in SQLite, and then
+        computes the actions needed for the configured download mode.
+        """
         url: str = playlist_cfg.get("url")
         mode: str = playlist_cfg.get("download_mode", "video")
         save_path = Path(playlist_cfg.get("save_path", "./downloads")).resolve()

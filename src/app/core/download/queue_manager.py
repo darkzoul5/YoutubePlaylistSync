@@ -37,6 +37,13 @@ class DownloadJob:
 
 
 class QueueManager:
+    """A small asyncio worker pool for download jobs.
+
+    Jobs are pushed into a shared queue and processed by a fixed number of
+    background tasks. This keeps the downloader concurrency bounded without
+    forcing the caller to manage worker lifetimes directly.
+    """
+
     def __init__(self, concurrency: int = 2) -> None:
         self._queue: "asyncio.Queue[DownloadJob]" = asyncio.Queue()
         self._concurrency = max(1, concurrency)
@@ -44,6 +51,7 @@ class QueueManager:
         self._stopped = asyncio.Event()
 
     async def start(self, worker_coro):
+        """Start the worker tasks that drain the queue."""
         async def runner(idx: int):
             while not self._stopped.is_set():
                 job = await self._queue.get()
@@ -55,13 +63,16 @@ class QueueManager:
         self._workers = [asyncio.create_task(runner(i)) for i in range(self._concurrency)]
 
     async def stop(self):
+        """Cancel all worker tasks and mark the queue as stopped."""
         self._stopped.set()
         for w in self._workers:
             w.cancel()
         self._workers.clear()
 
     async def enqueue(self, job: DownloadJob):
+        """Add a job to the shared queue."""
         await self._queue.put(job)
 
     async def join(self) -> None:
+        """Block until every queued job has been acknowledged."""
         await self._queue.join()
