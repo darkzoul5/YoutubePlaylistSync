@@ -23,7 +23,7 @@ test = [
 ]
 
 [project.urls]
-Home = "https://github.com/darkzoul5/YoutubePlaylistSyncThing"
+Home = "https://github.com/darkzoul5/YoutubePlaylistSync"
 
 [project.scripts]
 ytpl-sync = "app.cli:main"
