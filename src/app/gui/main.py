@@ -368,6 +368,16 @@ class MainWindow(QtWidgets.QMainWindow):
               color: #d5dae3;
               background: #0b0d11;
             }
+            QFrame#aboutCard {
+              background: #0b0d11;
+              border: 1px solid #20242d;
+              border-radius: 14px;
+            }
+            QLabel#cardTitle {
+              font-size: 15px;
+              font-weight: 600;
+              color: #f2f4f8;
+            }
             QHeaderView::section {
               background: #0b0d11;
               color: #cfd3da;

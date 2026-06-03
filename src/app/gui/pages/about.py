@@ -9,79 +9,104 @@ class AboutPage(QtWidgets.QWidget):
         self.setObjectName("aboutPage")
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.setSpacing(12)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(14)
 
         title = QtWidgets.QLabel("About")
         title.setObjectName("pageTitle")
         layout.addWidget(title)
 
-        subtitle = QtWidgets.QLabel(
-            "ytpl-sync is a desktop app for keeping local copies of YouTube playlists in sync."
-        )
-        subtitle.setWordWrap(True)
-        subtitle.setProperty("muted", True)
-        layout.addWidget(subtitle)
+        layout.addWidget(self._hero_card())
+        layout.addWidget(self._project_card())
+        layout.addWidget(self._suggestions_card())
+        layout.addStretch(1)
 
-        note = QtWidgets.QLabel(
-            "This project is a student project."
-        )
-        note.setWordWrap(True)
-        note.setProperty("muted", True)
-        layout.addWidget(note)
+    def _card(self) -> tuple[QtWidgets.QFrame, QtWidgets.QVBoxLayout]:
+        card = QtWidgets.QFrame()
+        card.setObjectName("aboutCard")
 
-        info_box = QtWidgets.QGroupBox("Project")
-        info_box.setObjectName("aboutCard")
-        info_layout = QtWidgets.QFormLayout(info_box)
-        info_layout.setLabelAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
-        info_layout.setFormAlignment(
+        card_layout = QtWidgets.QVBoxLayout(card)
+        card_layout.setContentsMargins(16, 16, 16, 16)
+        card_layout.setSpacing(10)
+        return card, card_layout
+
+    def _card_title(self, text: str) -> QtWidgets.QLabel:
+        label = QtWidgets.QLabel(text)
+        label.setObjectName("cardTitle")
+        return label
+
+    def _muted_label(self, text: str) -> QtWidgets.QLabel:
+        label = QtWidgets.QLabel(text)
+        label.setWordWrap(True)
+        label.setProperty("muted", True)
+        return label
+
+    def _link_label(self, text: str, url: str) -> QtWidgets.QLabel:
+        label = QtWidgets.QLabel(f'<a href="{url}">{text}</a>')
+        label.setWordWrap(True)
+        label.setProperty("link", True)
+        label.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction
+        )
+        label.setOpenExternalLinks(True)
+        return label
+
+    def _hero_card(self) -> QtWidgets.QFrame:
+        card, layout = self._card()
+        layout.addWidget(self._card_title("About this project"))
+        layout.addWidget(
+            self._muted_label(
+                "ytpl-sync is a desktop app for keeping local copies of YouTube playlists in sync."
+            )
+        )
+        layout.addWidget(
+            self._muted_label(
+                "This is a student project."
+            )
+        )
+        return card
+
+    def _project_card(self) -> QtWidgets.QFrame:
+        card, layout = self._card()
+        layout.addWidget(self._card_title("Project"))
+
+        form = QtWidgets.QFormLayout()
+        form.setLabelAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        form.setFormAlignment(
             QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignLeft
         )
-        info_layout.setHorizontalSpacing(14)
-        info_layout.setVerticalSpacing(10)
+        form.setHorizontalSpacing(14)
+        form.setVerticalSpacing(10)
 
-        author = QtWidgets.QLabel("Dark_Zoul")
-        info_layout.addRow("Author", author)
-
-        repo = QtWidgets.QLabel(
-            '<a href="https://github.com/darkzoul5/YoutubePlaylistSync">'
-            "https://github.com/darkzoul5/YoutubePlaylistSync</a>"
+        author = self._muted_label("Dark_Zoul")
+        form.addRow("Author", author)
+        form.addRow(
+            "Repository",
+            self._link_label(
+                "https://github.com/darkzoul5/YoutubePlaylistSync",
+                "https://github.com/darkzoul5/YoutubePlaylistSync",
+            ),
         )
-        repo.setTextInteractionFlags(
-            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction
+        form.addRow(
+            "Report issue",
+            self._link_label(
+                "https://github.com/darkzoul5/YoutubePlaylistSync/issues",
+                "https://github.com/darkzoul5/YoutubePlaylistSync/issues",
+            ),
         )
-        repo.setOpenExternalLinks(True)
-        repo.setWordWrap(True)
-        repo.setProperty("link", True)
-        info_layout.addRow("Repository", repo)
 
-        issue = QtWidgets.QLabel(
-            '<a href="https://github.com/darkzoul5/YoutubePlaylistSync/issues">'
-            "https://github.com/darkzoul5/YoutubePlaylistSync/issues</a>"
-        )
-        issue.setTextInteractionFlags(
-            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction
-        )
-        issue.setOpenExternalLinks(True)
-        issue.setWordWrap(True)
-        issue.setProperty("link", True)
-        info_layout.addRow("Report issue", issue)
+        layout.addLayout(form)
+        return card
 
-        layout.addWidget(info_box)
-
-        suggestions_box = QtWidgets.QGroupBox("Suggestions")
-        suggestions_box.setObjectName("aboutCard")
-        suggestions_layout = QtWidgets.QVBoxLayout(suggestions_box)
-        suggestions_layout.setSpacing(8)
+    def _suggestions_card(self) -> QtWidgets.QFrame:
+        card, layout = self._card()
+        layout.addWidget(self._card_title("Suggestions"))
 
         suggestions = [
             "Keep the app updated regularly so that YouTube extraction stays reliable."
         ]
         for text in suggestions:
-            label = QtWidgets.QLabel(f"• {text}")
-            label.setWordWrap(True)
-            label.setProperty("muted", True)
-            suggestions_layout.addWidget(label)
+            layout.addWidget(self._muted_label(f"• {text}"))
 
-        suggestions_layout.addStretch(1)
-        layout.addWidget(suggestions_box)
         layout.addStretch(1)
+        return card
