@@ -1,8 +1,5 @@
 # YouTube Playlist Sync — Project Conversion Plan
 
-Repository:
-
-- [darkzoul5/YoutubePlaylistDownloader](https://github.com/darkzoul5/YoutubePlaylistDownloader?utm_source=chatgpt.com)
 
 ---
 
