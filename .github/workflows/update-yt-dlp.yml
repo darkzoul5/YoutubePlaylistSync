@@ -1,5 +1,4 @@
-name: update yt-dlp and open PR
-
+name: update yt-dlp
 on:
   schedule:
     - cron: "0 10 * * *"
