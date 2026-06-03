@@ -19,6 +19,12 @@ class AboutPage(QtWidgets.QWidget):
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
 
+        note = QtWidgets.QLabel(
+            "This project started as a student project and is still evolving."
+        )
+        note.setWordWrap(True)
+        layout.addWidget(note)
+
         info_box = QtWidgets.QGroupBox("Project")
         info_layout = QtWidgets.QFormLayout(info_box)
 
@@ -36,6 +42,17 @@ class AboutPage(QtWidgets.QWidget):
         repo.setWordWrap(True)
         info_layout.addRow("Repository", repo)
 
+        issue = QtWidgets.QLabel(
+            '<a href="https://github.com/darkzoul5/YoutubePlaylistSync/issues">'
+            "https://github.com/darkzoul5/YoutubePlaylistSync/issues</a>"
+        )
+        issue.setTextInteractionFlags(
+            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction
+        )
+        issue.setOpenExternalLinks(True)
+        issue.setWordWrap(True)
+        info_layout.addRow("Report issue", issue)
+
         layout.addWidget(info_box)
 
         suggestions_box = QtWidgets.QGroupBox("Suggestions")
@@ -43,7 +60,7 @@ class AboutPage(QtWidgets.QWidget):
 
         suggestions = [
             "Keep yt-dlp updated regularly so site extraction stays reliable.",
-            "Open issues with a playlist URL or log snippet when a sync fails.",
+            "Open an issue with a playlist URL and log snippet when a sync fails.",
             "Use the release builds when you want a ready-to-run binary package.",
         ]
         for text in suggestions:
