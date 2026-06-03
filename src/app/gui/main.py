@@ -328,8 +328,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setStyleSheet(
             """
             QMainWindow { background: #0f1115; color: #e6e6e6; }
-            QWidget { font-size: 13px; }
+            QWidget { font-size: 13px; color: #e6e6e6; }
             QLabel#pageTitle { font-size: 18px; font-weight: 600; padding: 4px 0; }
+            QLabel[muted="true"] { color: #aeb6c2; }
+            QLabel[link="true"] { color: #8fb8ff; }
+            QLabel[link="true"]:hover { color: #b8d2ff; }
 
             QListWidget#sidebar {
               background: #0b0d11;
@@ -350,6 +353,20 @@ class MainWindow(QtWidgets.QMainWindow):
               background: #0f1115;
               gridline-color: #20242d;
               border: 1px solid #20242d;
+            }
+            QGroupBox {
+              border: 1px solid #20242d;
+              border-radius: 10px;
+              margin-top: 14px;
+              padding: 12px;
+              background: #0b0d11;
+            }
+            QGroupBox::title {
+              subcontrol-origin: margin;
+              left: 12px;
+              padding: 0 6px;
+              color: #d5dae3;
+              background: #0b0d11;
             }
             QHeaderView::section {
               background: #0b0d11;
