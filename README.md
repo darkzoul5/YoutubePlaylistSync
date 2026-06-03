@@ -11,7 +11,7 @@ Local-first YouTube playlist synchronization client.
 
 ## What's Included
 
-- GUI (PySide6) playlist manager + sync runner
+- GUI (PySide6 Essentials) playlist manager + sync runner
 - Scanner (yt-dlp extract-only), diff engine, filesystem scan
 - Safe reordering via two-pass rename, recycle deletions
 - Async download queue with simple retry (yt-dlp Python API)
@@ -30,6 +30,7 @@ Download the latest release from this repo's Releases page and pick one:
 - `ytpl-sync-windows-{version}.zip` / `ytpl-sync-linux-{version}.tar.gz` (no ffmpeg bundled)
 
 ## Configure
+
 Application uses a json config that canbe edited from UI or manually
 
 ```json
@@ -73,7 +74,7 @@ Queue / retry:
 - Run `ytpl-sync.exe` (GUI).
 
 ## Tray
- 
+
 - The app supports minimizing to tray on close if the OS provides a system tray; use the tray icon menu to quit.
 - Tray behavior settings (Settings page):
   - `close_to_tray`: close hides to tray (keeps running).

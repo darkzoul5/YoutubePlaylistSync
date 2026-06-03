@@ -13,7 +13,7 @@ keywords = ["youtube", "yt-dlp", "playlist", "sync"]
 requires-python = ">=3.10"
 dependencies = [
 	"yt-dlp>=2026.3.17",
-    "PySide6",
+    "PySide6_Essentials>=6.11.1",
 ]
 [project.optional-dependencies]
 test = [
