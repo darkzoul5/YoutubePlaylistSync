@@ -8,16 +8,19 @@ from ..models import PlaylistItem
 
 class PlaylistScanner:
     """
-    Fetches remote playlist entries using yt-dlp (no downloads).
+    Fetches remote playlist entries using yt-dlp without downloading media.
 
-    This class intentionally avoids strict dependencies at import time. If
-    yt_dlp is unavailable, call sites should handle the raised ImportError.
+    The scanner is deliberately lightweight: it extracts remote metadata only
+    and leaves persistence, diffing, and download decisions to higher layers.
+    Import-time dependency checks are avoided so the rest of the application can
+    still start in environments where yt-dlp is unavailable.
     """
 
     def __init__(self) -> None:
         pass
 
     def scan(self, playlist_url: str, playlist_id: str, *, ffmpeg_path: Optional[str] = None) -> List[PlaylistItem]:
+        """Return the current remote playlist entries as `PlaylistItem` records."""
         try:
             import yt_dlp  # type: ignore
         except Exception as exc:  # pragma: no cover - environment dependent
