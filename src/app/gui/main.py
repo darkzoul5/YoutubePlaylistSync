@@ -15,6 +15,7 @@ from .pages.playlists import PlaylistManagerPage
 from .pages.queue import QueuePage
 from .pages.logs import LogsPage
 from .pages.settings import SettingsPage
+from .pages.about import AboutPage
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -47,17 +48,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self._queue_page = QueuePage()
         self._logs_page = LogsPage()
         self._settings_page = SettingsPage()
+        self._about_page = AboutPage()
 
         self._pages: list[QtWidgets.QWidget] = [
             self._playlists_page,
             self._queue_page,
             self._logs_page,
             self._settings_page,
+            self._about_page,
         ]
         for p in self._pages:
             self._stack.addWidget(p)
 
-        for label in ("Playlists", "Queue", "Logs", "Settings"):
+        for label in ("Playlists", "Queue", "Logs", "Settings", "About"):
             item = QtWidgets.QListWidgetItem(label)
             item.setSizeHint(QtCore.QSize(200, 36))
             self._nav.addItem(item)
