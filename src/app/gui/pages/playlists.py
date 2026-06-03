@@ -36,6 +36,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
         parent: QtWidgets.QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self.setObjectName("playlistsPage")
         self._settings = settings
         self._config_path = getattr(settings, "path", None)
         self._config: dict[str, Any] = {}
@@ -50,6 +51,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
         header.setObjectName("pageTitle")
 
         self._list = QtWidgets.QListWidget()
+        self._list.setObjectName("playlistList")
         # Selection-based UI is intentionally disabled; actions happen per-card.
         self._list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
         self._list.setSpacing(8)
@@ -57,6 +59,20 @@ class PlaylistManagerPage(QtWidgets.QWidget):
         self._list.setWordWrap(True)
         self._list.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
         enable_smooth_scrolling(self._list)
+        self._list.setStyleSheet(
+            """
+            QListWidget#playlistList {
+              background: #0f1218;
+              border: none;
+            }
+            QListWidget#playlistList::viewport {
+              background: #0f1218;
+            }
+            QListWidget#playlistList::item {
+              background: transparent;
+            }
+            """
+        )
 
         self._add_btn = QtWidgets.QPushButton("Add")
         self._add_btn.clicked.connect(self._add_playlist)
@@ -410,6 +426,16 @@ class _PlaylistCard(QtWidgets.QFrame):
         super().__init__(parent)
         self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
         self.setObjectName("playlistCard")
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setStyleSheet(
+            """
+            QFrame#playlistCard {
+              background: #171b22;
+              border: 1px solid #2a3140;
+              border-radius: 12px;
+            }
+            """
+        )
         self._index = index
         self._active = False
         self._paused = False

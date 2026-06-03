@@ -356,16 +356,24 @@ class MainWindow(QtWidgets.QMainWindow):
     def _apply_style(self) -> None:
         self.setStyleSheet(
             """
-            QMainWindow { background: #0f1115; color: #e6e6e6; }
-            QWidget { font-size: 13px; color: #e6e6e6; }
+            QMainWindow { background: #0f1218; color: #d7dce4; }
+            QWidget { font-size: 13px; color: #d7dce4; }
+            QWidget#playlistsPage,
+            QWidget#queuePage,
+            QWidget#logsPage,
+            QWidget#settingsPage,
+            QWidget#aboutPage {
+              background: #0f1218;
+            }
             QLabel#pageTitle { font-size: 18px; font-weight: 600; padding: 4px 0; }
-            QLabel[muted="true"] { color: #aeb6c2; }
-            QLabel[link="true"] { color: #8fb8ff; }
-            QLabel[link="true"]:hover { color: #b8d2ff; }
+            QLabel#cardTitle { font-size: 15px; font-weight: 600; color: #eef2f8; }
+            QLabel[muted="true"] { color: #9aa3b2; }
+            QLabel[link="true"] { color: #6c8bff; }
+            QLabel[link="true"]:hover { color: #8ea7ff; }
 
             QListWidget#sidebar {
-              background: #0b0d11;
-              border-right: 1px solid #20242d;
+              background: #0d1015;
+              border-right: 1px solid #2a3140;
               padding: 8px;
             }
             QListWidget#sidebar::item {
@@ -374,66 +382,94 @@ class MainWindow(QtWidgets.QMainWindow):
               padding: 8px 10px;
             }
             QListWidget#sidebar::item:selected {
-              background: #1e2633;
+              background: #21304a;
               color: #ffffff;
             }
 
             QTableWidget {
-              background: #0f1115;
-              gridline-color: #20242d;
-              border: 1px solid #20242d;
+                background: #171b22;
+                gridline-color: #2a3140;
+                border: 1px solid #2a3140;
+            }
+            QTableWidget::item {
+              padding: 6px 8px;
+            }
+            QPlainTextEdit {
+              background: #11151c;
+              border: 1px solid #2a3140;
+              border-radius: 10px;
+              color: #d7dce4;
+            }
+            QScrollBar:vertical {
+              background: #0f1218;
+              width: 12px;
+              margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+              background: #34465f;
+              min-height: 24px;
+              border-radius: 6px;
+            }
+            QScrollBar::handle:vertical:hover {
+              background: #456183;
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical,
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {
+              background: transparent;
+              border: none;
             }
             QGroupBox {
-              border: 1px solid #20242d;
-              border-radius: 10px;
+              border: 1px solid #2a3140;
+              border-radius: 12px;
               margin-top: 14px;
               padding: 12px;
-              background: #0b0d11;
+              background: #171b22;
             }
             QGroupBox::title {
               subcontrol-origin: margin;
               left: 12px;
               padding: 0 6px;
-              color: #d5dae3;
-              background: #0b0d11;
+              color: #e2e7ef;
+              background: #171b22;
             }
             QFrame#aboutCard {
-              background: #0b0d11;
-              border: 1px solid #20242d;
+              background: #171b22;
+              border: 1px solid #2a3140;
               border-radius: 14px;
             }
-            QLabel#cardTitle {
-              font-size: 15px;
-              font-weight: 600;
-              color: #f2f4f8;
-            }
             QHeaderView::section {
-              background: #0b0d11;
-              color: #cfd3da;
-              border: 1px solid #20242d;
+              background: #171b22;
+              color: #d7dce4;
+              border: 1px solid #2a3140;
               padding: 6px;
             }
             QPushButton {
-              background: #1e2633;
-              border: 1px solid #2a3140;
+              background: #1e2631;
+              border: 1px solid #31405a;
               padding: 6px 10px;
               border-radius: 8px;
-              color: #e6e6e6;
+              color: #d7dce4;
             }
-            QPushButton:hover { background: #243044; }
+            QPushButton:hover { background: #26344a; }
+            QPushButton:pressed { background: #1a2433; }
 
             QFrame#playlistCard {
-              background: #0b0d11;
-              border: 1px solid #20242d;
-              border-radius: 10px;
+              background: #171b22;
+              border: 1px solid #2a3140;
+              border-radius: 12px;
               padding: 10px;
             }
             QLineEdit, QComboBox {
-              background: #0f1115;
-              border: 1px solid #20242d;
+              background: #11151c;
+              border: 1px solid #2a3140;
               border-radius: 8px;
               padding: 6px 8px;
-              color: #e6e6e6;
+              color: #d7dce4;
+            }
+            QLineEdit:focus, QComboBox:focus {
+              border: 1px solid #6c8bff;
             }
             """
         )

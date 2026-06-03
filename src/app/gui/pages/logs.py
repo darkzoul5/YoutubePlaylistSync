@@ -10,6 +10,7 @@ from ..smooth_scroll import enable_smooth_scrolling
 class LogsPage(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("logsPage")
         layout = QtWidgets.QVBoxLayout(self)
         title = QtWidgets.QLabel("Logs")
         title.setObjectName("pageTitle")

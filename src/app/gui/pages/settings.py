@@ -11,6 +11,7 @@ from ..config_store import load_config, save_config
 class SettingsPage(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("settingsPage")
         self._config_path: Path | None = None
         self._config: dict[str, Any] = {}
 

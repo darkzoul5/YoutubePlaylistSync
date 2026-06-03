@@ -10,6 +10,7 @@ class QueuePage(QtWidgets.QWidget):
 
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("queuePage")
         # Map (playlist_id, video_id) to a stable item; its `.row()` tracks sorting moves.
         self._rows_by_key: dict[tuple[str, str], QtWidgets.QTableWidgetItem] = {}
         self._pending_by_key: dict[tuple[str, str], dict] = {}
