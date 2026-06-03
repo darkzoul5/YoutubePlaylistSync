@@ -107,6 +107,12 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Write bundled version file
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${{ steps.version.outputs.version }}" > version.txt
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -124,14 +130,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $ws = "${{ github.workspace }}"
-          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "$ws/assets/icon.ico" --add-data "$ws/assets/icon.png;assets" --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
+          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "$ws/assets/icon.ico" --add-data "$ws/assets/icon.png;assets" --add-data "$ws/version.txt;." --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
 
       - name: Build binary (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -euo pipefail
-          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "${GITHUB_WORKSPACE}/assets/icon.png" --add-data "${GITHUB_WORKSPACE}/assets/icon.png:assets" --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
+          pyinstaller --noconfirm --onefile --noconsole --name "ytpl-sync" --icon "${GITHUB_WORKSPACE}/assets/icon.png" --add-data "${GITHUB_WORKSPACE}/assets/icon.png:assets" --add-data "${GITHUB_WORKSPACE}/version.txt:." --distpath "dist/pyinstaller" --workpath "build/pyinstaller" --specpath "build/pyinstaller" --paths "src" "ytpl-sync-entry.py"
 
       - name: Stage package
         shell: bash

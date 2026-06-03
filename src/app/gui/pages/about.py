@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ...core.utils.version import get_app_version
+
 
 class AboutPage(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
@@ -78,6 +80,10 @@ class AboutPage(QtWidgets.QWidget):
 
         author = self._muted_label("Dark_Zoul")
         form.addRow("Author", author)
+
+        version_text = get_app_version()
+        version = self._muted_label(f"v{version_text}" if version_text != "unknown" else version_text)
+        form.addRow("Version", version)
 
         repo_row = QtWidgets.QHBoxLayout()
         repo_row.setContentsMargins(0, 0, 0, 0)
