@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class AboutPage(QtWidgets.QWidget):
@@ -41,15 +41,13 @@ class AboutPage(QtWidgets.QWidget):
         label.setProperty("muted", True)
         return label
 
-    def _link_label(self, text: str, url: str) -> QtWidgets.QLabel:
-        label = QtWidgets.QLabel(f'<a href="{url}">{text}</a>')
-        label.setWordWrap(True)
-        label.setProperty("link", True)
-        label.setTextInteractionFlags(
-            QtCore.Qt.TextInteractionFlag.TextBrowserInteraction
+    def _link_button(self, text: str, url: str) -> QtWidgets.QPushButton:
+        button = QtWidgets.QPushButton(text)
+        button.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        button.clicked.connect(
+            lambda: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
         )
-        label.setOpenExternalLinks(True)
-        return label
+        return button
 
     def _hero_card(self) -> QtWidgets.QFrame:
         card, layout = self._card()
@@ -80,20 +78,30 @@ class AboutPage(QtWidgets.QWidget):
 
         author = self._muted_label("Dark_Zoul")
         form.addRow("Author", author)
-        form.addRow(
-            "Repository",
-            self._link_label(
+
+        repo_row = QtWidgets.QHBoxLayout()
+        repo_row.setContentsMargins(0, 0, 0, 0)
+        repo_row.setSpacing(10)
+        repo_row.addWidget(
+            self._link_button(
+                "Open",
                 "https://github.com/darkzoul5/YoutubePlaylistSync",
-                "https://github.com/darkzoul5/YoutubePlaylistSync",
-            ),
+            )
         )
-        form.addRow(
-            "Report issue",
-            self._link_label(
+        repo_row.addStretch(1)
+        form.addRow("Repository", repo_row)
+
+        issue_row = QtWidgets.QHBoxLayout()
+        issue_row.setContentsMargins(0, 0, 0, 0)
+        issue_row.setSpacing(10)
+        issue_row.addWidget(
+            self._link_button(
+                "Open",
                 "https://github.com/darkzoul5/YoutubePlaylistSync/issues",
-                "https://github.com/darkzoul5/YoutubePlaylistSync/issues",
-            ),
+            )
         )
+        issue_row.addStretch(1)
+        form.addRow("Issues", issue_row)
 
         layout.addLayout(form)
         return card
