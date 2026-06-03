@@ -39,9 +39,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # Sidebar navigation
         self._nav = QtWidgets.QListWidget()
         self._nav.setObjectName("sidebar")
-        self._nav.setFixedWidth(220)
         self._nav.setSpacing(2)
+        self._nav.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._nav.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         self._nav.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self._nav.model().rowsInserted.connect(self._update_sidebar_width)
+        self._nav.model().dataChanged.connect(self._update_sidebar_width)
+        self._nav.model().rowsRemoved.connect(self._update_sidebar_width)
 
         self._stack = QtWidgets.QStackedWidget()
         self._playlists_page = PlaylistManagerPage(self._settings)
@@ -61,9 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._stack.addWidget(p)
 
         for label in ("Playlists", "Queue", "Logs", "Settings", "About"):
-            item = QtWidgets.QListWidgetItem(label)
-            item.setSizeHint(QtCore.QSize(200, 36))
-            self._nav.addItem(item)
+            self._add_sidebar_item(label)
 
         self._nav.currentRowChanged.connect(self._stack.setCurrentIndex)
         self._nav.setCurrentRow(0)
@@ -96,6 +102,29 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._refresh_queue_labels()
         self._init_tray()
+        QtCore.QTimer.singleShot(0, self._update_sidebar_width)
+
+    def _add_sidebar_item(self, label: str) -> None:
+        item = QtWidgets.QListWidgetItem(label)
+        self._nav.addItem(item)
+        self._update_sidebar_width()
+
+    def _update_sidebar_width(self, *_args: object) -> None:
+        metrics = self._nav.fontMetrics()
+        max_text_width = 0
+        for row in range(self._nav.count()):
+            item = self._nav.item(row)
+            if item is None:
+                continue
+            max_text_width = max(max_text_width, metrics.horizontalAdvance(item.text()))
+
+        if max_text_width <= 0:
+            return
+
+        frame = self._nav.frameWidth() * 2
+        padding = 44
+        target_width = max_text_width + frame + padding
+        self._nav.setFixedWidth(max(120, min(220, target_width)))
 
     def _tray_config(self) -> dict:
         # Read from disk so toggles apply immediately (no restart required).
