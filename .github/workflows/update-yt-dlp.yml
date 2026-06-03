@@ -76,7 +76,7 @@ jobs:
 
       - name: Create or update pull request
         if: steps.detect.outputs.needs_update == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/refresh-yt-dlp
           commit-message: "chore: bump yt-dlp to ${{ steps.detect.outputs.latest_yt_dlp }}"
