@@ -87,7 +87,7 @@ jobs:
 
             - Current version: `${{ steps.detect.outputs.current_yt_dlp }}`
             - Latest version: `${{ steps.detect.outputs.latest_yt_dlp }}`
-          labels: dependencies, automation
+          labels: deps
           delete-branch: false
           add-paths: |
             pyproject.toml
