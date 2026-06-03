@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return {}
 
     def _close_to_tray_enabled(self) -> bool:
-        return bool(self._tray_config().get("close_to_tray", True))
+        return bool(self._tray_config().get("close_to_tray", False))
 
     def _minimize_to_tray_enabled(self) -> bool:
         return bool(self._tray_config().get("minimize_to_tray", False))

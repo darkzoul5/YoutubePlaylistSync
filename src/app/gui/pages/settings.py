@@ -52,7 +52,7 @@ class SettingsPage(QtWidgets.QWidget):
 
         tray_form = QtWidgets.QFormLayout()
         self._close_to_tray = QtWidgets.QCheckBox()
-        self._close_to_tray.setChecked(True)
+        self._close_to_tray.setChecked(False)
         tray_form.addRow("close_to_tray", self._close_to_tray)
 
         self._minimize_to_tray = QtWidgets.QCheckBox()
@@ -121,7 +121,7 @@ class SettingsPage(QtWidgets.QWidget):
             ui = ui if isinstance(ui, dict) else {}
             tray = ui.get("tray")
             tray = tray if isinstance(tray, dict) else {}
-            self._close_to_tray.setChecked(bool(tray.get("close_to_tray", True)))
+            self._close_to_tray.setChecked(bool(tray.get("close_to_tray", False)))
             self._minimize_to_tray.setChecked(bool(tray.get("minimize_to_tray", False)))
             self._start_minimized_to_tray.setChecked(bool(tray.get("start_minimized_to_tray", False)))
 

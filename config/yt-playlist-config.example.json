@@ -5,7 +5,7 @@
   "retry_delay_seconds": 1.5,
   "ui": {
     "tray": {
-      "close_to_tray": true,
+      "close_to_tray": false,
       "minimize_to_tray": false,
       "start_minimized_to_tray": false
     }
