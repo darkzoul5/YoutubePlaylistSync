@@ -6,6 +6,9 @@ from ...core.utils.version import get_app_version
 
 
 class AboutPage(QtWidgets.QWidget):
+    REPO_URL = "https://github.com/darkzoul5/YoutubePlaylistSync"
+    ISSUES_URL = f"{REPO_URL}/issues"
+
     def __init__(self, parent: QtWidgets.QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("aboutPage")
@@ -18,19 +21,23 @@ class AboutPage(QtWidgets.QWidget):
         title.setObjectName("pageTitle")
         layout.addWidget(title)
 
-        layout.addWidget(self._hero_card())
-        layout.addWidget(self._project_card())
-        layout.addWidget(self._suggestions_card())
+        for card in (
+            self._hero_card(),
+            self._project_card(),
+            self._suggestions_card(),
+        ):
+            layout.addWidget(card)
         layout.addStretch(1)
 
-    def _card(self) -> tuple[QtWidgets.QFrame, QtWidgets.QVBoxLayout]:
+    def _card(self, title: str) -> tuple[QtWidgets.QFrame, QtWidgets.QVBoxLayout]:
         card = QtWidgets.QFrame()
         card.setObjectName("aboutCard")
 
-        card_layout = QtWidgets.QVBoxLayout(card)
-        card_layout.setContentsMargins(16, 16, 16, 16)
-        card_layout.setSpacing(10)
-        return card, card_layout
+        layout = QtWidgets.QVBoxLayout(card)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+        layout.addWidget(self._card_title(title))
+        return card, layout
 
     def _card_title(self, text: str) -> QtWidgets.QLabel:
         label = QtWidgets.QLabel(text)
@@ -46,29 +53,31 @@ class AboutPage(QtWidgets.QWidget):
     def _link_button(self, text: str, url: str) -> QtWidgets.QPushButton:
         button = QtWidgets.QPushButton(text)
         button.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-        button.clicked.connect(
-            lambda: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
-        )
+        button.clicked.connect(lambda: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)))
         return button
 
+    def _action_row(self, text: str, url: str) -> QtWidgets.QWidget:
+        row = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(row)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+        layout.addWidget(self._link_button(text, url))
+        layout.addStretch(1)
+        return row
+
     def _hero_card(self) -> QtWidgets.QFrame:
-        card, layout = self._card()
-        layout.addWidget(self._card_title("About this project"))
-        layout.addWidget(
+        card, layout = self._card("About this project")
+        layout.insertWidget(
+            1,
             self._muted_label(
                 "ytpl-sync is a desktop app for keeping local copies of YouTube playlists in sync."
-            )
+            ),
         )
-        layout.addWidget(
-            self._muted_label(
-                "This is a student project."
-            )
-        )
+        layout.insertWidget(2, self._muted_label("This is a student project."))
         return card
 
     def _project_card(self) -> QtWidgets.QFrame:
-        card, layout = self._card()
-        layout.addWidget(self._card_title("Project"))
+        card, layout = self._card("Project")
 
         form = QtWidgets.QFormLayout()
         form.setLabelAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
@@ -78,49 +87,26 @@ class AboutPage(QtWidgets.QWidget):
         form.setHorizontalSpacing(14)
         form.setVerticalSpacing(10)
 
-        author = self._muted_label("Dark_Zoul")
-        form.addRow("Author", author)
-
         version_text = get_app_version()
-        version = self._muted_label(f"v{version_text}" if version_text != "unknown" else version_text)
-        form.addRow("Version", version)
-
-        repo_row = QtWidgets.QHBoxLayout()
-        repo_row.setContentsMargins(0, 0, 0, 0)
-        repo_row.setSpacing(10)
-        repo_row.addWidget(
-            self._link_button(
-                "Open",
-                "https://github.com/darkzoul5/YoutubePlaylistSync",
-            )
-        )
-        repo_row.addStretch(1)
-        form.addRow("Repository", repo_row)
-
-        issue_row = QtWidgets.QHBoxLayout()
-        issue_row.setContentsMargins(0, 0, 0, 0)
-        issue_row.setSpacing(10)
-        issue_row.addWidget(
-            self._link_button(
-                "Open",
-                "https://github.com/darkzoul5/YoutubePlaylistSync/issues",
-            )
-        )
-        issue_row.addStretch(1)
-        form.addRow("Issues", issue_row)
+        version = f"v{version_text}" if version_text != "dev" else version_text
+        rows = [
+            ("Author", self._muted_label("Dark_Zoul")),
+            ("Version", self._muted_label(version)),
+            ("Repository", self._action_row("Open", self.REPO_URL)),
+            ("Issues", self._action_row("Open", self.ISSUES_URL)),
+        ]
+        for label, widget in rows:
+            form.addRow(label, widget)
 
         layout.addLayout(form)
         return card
 
     def _suggestions_card(self) -> QtWidgets.QFrame:
-        card, layout = self._card()
-        layout.addWidget(self._card_title("Suggestions"))
-
-        suggestions = [
-            "Keep the app updated regularly so that YouTube extraction stays reliable."
-        ]
-        for text in suggestions:
-            layout.addWidget(self._muted_label(f"• {text}"))
-
+        card, layout = self._card("Suggestions")
+        layout.addWidget(
+            self._muted_label(
+                "• Keep the app updated regularly so that YouTube extraction stays reliable."
+            )
+        )
         layout.addStretch(1)
         return card
