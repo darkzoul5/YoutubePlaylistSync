@@ -1,4 +1,4 @@
-name: update yt-dlp and release patch
+name: update yt-dlp and open PR
 
 on:
   schedule:
@@ -7,9 +7,10 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
-  group: refresh-yt-dlp-release
+  group: refresh-yt-dlp-pr
   cancel-in-progress: true
 
 jobs:
@@ -28,12 +29,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Detect updates
+      - name: Check and bump yt-dlp
         id: detect
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --tags --force
 
           python - <<'PY' >> "$GITHUB_OUTPUT"
           from __future__ import annotations
@@ -59,82 +59,35 @@ jobs:
           latest_payload = urlopen("https://pypi.org/pypi/yt-dlp/json", timeout=30)
           latest_version = json.load(latest_payload)["info"]["version"]
 
-          tag_output = __import__("subprocess").check_output(
-              ["git", "tag", "--sort=-creatordate", "v*"],
-              text=True,
-          ).splitlines()
-          latest_tag = next((tag for tag in tag_output if tag.startswith("v")), None)
-          if latest_tag is None:
-              raise SystemExit("No existing v* tag found")
-
           needs_update = version_tuple(latest_version) > version_tuple(dep_version)
 
           print(f"needs_update={'true' if needs_update else 'false'}")
           print(f"latest_yt_dlp={latest_version}")
           print(f"current_yt_dlp={dep_version}")
-          print(f"current_tag={latest_tag}")
-          if latest_tag.startswith("v"):
-              current_version = latest_tag[1:]
-              print(f"next_version={current_version.rsplit('.', 1)[0]}.{int(current_version.rsplit('.', 1)[1]) + 1}")
+
+          if needs_update:
+              text = re.sub(
+                  r'(^\s*"yt-dlp>=)[^"]+(")',
+                  rf'\g<1>{latest_version}\2',
+                  text,
+                  flags=re.MULTILINE,
+              )
+              pyproject.write_text(text, encoding="utf-8")
           PY
 
-      - name: Update pyproject
+      - name: Create or update pull request
         if: steps.detect.outputs.needs_update == 'true'
-        shell: bash
-        env:
-          NEW_YTDLP_VERSION: ${{ steps.detect.outputs.latest_yt_dlp }}
-          NEW_PROJECT_VERSION: ${{ steps.detect.outputs.next_version }}
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import os
-          import re
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/refresh-yt-dlp
+          commit-message: "chore: bump yt-dlp to ${{ steps.detect.outputs.latest_yt_dlp }}"
+          title: "chore: bump yt-dlp to ${{ steps.detect.outputs.latest_yt_dlp }}"
+          body: |
+            Automated yt-dlp dependency refresh.
 
-          pyproject = Path("pyproject.toml")
-          text = pyproject.read_text(encoding="utf-8")
-
-          project_version = os.environ["NEW_PROJECT_VERSION"]
-          ytdlp_version = os.environ["NEW_YTDLP_VERSION"]
-
-          text = re.sub(
-              r'(^version\s*=\s*")[^"]+(")',
-              rf'\g<1>{project_version}\2',
-              text,
-              flags=re.MULTILINE,
-          )
-          text = re.sub(
-              r'(^\s*"yt-dlp>=)[^"]+(")',
-              rf'\g<1>{ytdlp_version}\2',
-              text,
-              flags=re.MULTILINE,
-          )
-
-          pyproject.write_text(text, encoding="utf-8")
-          PY
-
-      - name: Commit and push update
-        if: steps.detect.outputs.needs_update == 'true'
-        shell: bash
-        env:
-          PROJECT_VERSION: ${{ steps.detect.outputs.next_version }}
-          YTDLP_VERSION: ${{ steps.detect.outputs.latest_yt_dlp }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add pyproject.toml
-          git commit -m "chore: bump yt-dlp to ${YTDLP_VERSION} and release v${PROJECT_VERSION}"
-          git push origin HEAD:${GITHUB_REF_NAME}
-
-      - name: Create and push release tag
-        if: steps.detect.outputs.needs_update == 'true'
-        shell: bash
-        env:
-          PROJECT_VERSION: ${{ steps.detect.outputs.next_version }}
-        run: |
-          set -euo pipefail
-          TAG="v${PROJECT_VERSION}"
-          git tag "${TAG}"
-          git push origin "${TAG}"
+            - Current version: `${{ steps.detect.outputs.current_yt_dlp }}`
+            - Latest version: `${{ steps.detect.outputs.latest_yt_dlp }}`
+          labels: dependencies, automation
+          delete-branch: false
+          add-paths: |
+            pyproject.toml
