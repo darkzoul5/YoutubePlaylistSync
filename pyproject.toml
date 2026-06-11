@@ -12,7 +12,7 @@ license = { file = "LICENSE" }
 keywords = ["youtube", "yt-dlp", "playlist", "sync"]
 requires-python = ">=3.10"
 dependencies = [
-	"yt-dlp>=2026.3.17",
+	"yt-dlp>=2026.6.9",
     "PySide6_Essentials>=6.11.1",
 ]
 [project.optional-dependencies]
