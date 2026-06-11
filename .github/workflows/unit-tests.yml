@@ -5,21 +5,15 @@ on:
   push:
     branches: 
       - main
-    paths:
-      - "src/**"
-      - "tests/**"
-      - "pyproject.toml"
-      - "pytest.ini"
-      - "ytpl-sync-entry.py"
+    paths-ignore:
+      - "assets/**"
+      - "README.md"
   pull_request:
     branches:
       - main
-    paths:
-      - "src/**"
-      - "tests/**"
-      - "pyproject.toml"
-      - "pytest.ini"
-      - "ytpl-sync-entry.py"
+    paths-ignore:
+      - "assets/**"
+      - "README.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

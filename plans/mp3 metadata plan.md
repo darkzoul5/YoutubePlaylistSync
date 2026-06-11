@@ -11,7 +11,7 @@
 - Write useful MP3 metadata for downloaded playlist items without affecting video-only downloads.
 - Keep the implementation reliable when optional fields are missing.
 - Preserve successful downloads even when metadata embedding partially fails.
-- Provide a setting to enable or disable MP3 metadata embedding.
+- Provide a per-playlist setting to enable or disable MP3 metadata embedding.
 
 ## Required Metadata
 
@@ -26,7 +26,7 @@
 
 ## Configuration Requirement
 
-- Add a setting to turn MP3 metadata embedding on or off.
+- Add a per-playlist setting to turn MP3 metadata embedding on or off.
 - Default should be explicitly defined during implementation; recommended default is `enabled` for new configs.
 - The setting should only affect `.mp3` metadata writing and should not change download selection, extraction, or `.mp4` handling.
 
@@ -68,7 +68,7 @@
 - Ensure the enriched `PlaylistItem` reaches the download job and post-processing stage.
 - Keep this propagation in-memory unless restart-safe metadata persistence becomes necessary later.
 - Avoid changing unrelated sync behavior for video-only items.
-- Carry the MP3 metadata enabled/disabled setting into the post-processing step.
+- Carry the per-playlist MP3 metadata enabled/disabled setting into the post-processing step.
 
 ### 4. Add an MP3 tag writer
 
@@ -109,8 +109,8 @@
 
 ### 8. Add configuration surface
 
-- Add the new setting to the config model and default config output.
-- Expose the setting in the GUI/settings surface if MP3 behavior is already user-configurable there.
+- Add the new per-playlist setting to the playlist config model and default config output.
+- Expose the setting in the playlist configuration UI, not as a global app setting.
 - Keep the naming explicit, for example `write_mp3_metadata` or `embed_mp3_metadata`.
 
 ## Error Handling Rules
@@ -137,7 +137,7 @@
 ## Documentation Updates
 
 - Document that MP3 tags are written only for `.mp3` outputs.
-- Document the new setting that enables or disables MP3 metadata embedding.
+- Document the new per-playlist setting that enables or disables MP3 metadata embedding.
 - Document the field fallback rules, especially artist and album behavior.
 - Document that album art comes from the video thumbnail, not playlist artwork.
 - Document that some YouTube items will not expose album or genre information.

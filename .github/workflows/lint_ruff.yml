@@ -2,7 +2,17 @@ name: Lint Python code
 
 on:
   push:
+    branches:
+      - main
+    paths-ignore:
+      - "assets/**"
+      - "README.md"
   pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "assets/**"
+      - "README.md"
 
 jobs:
   lint:
