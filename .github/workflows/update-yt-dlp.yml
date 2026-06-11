@@ -78,6 +78,9 @@ jobs:
         if: steps.detect.outputs.needs_update == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
+          # Use a non-GITHUB_TOKEN credential so the resulting PR triggers CI workflows.
+          # Configure secrets.PR_WORKFLOW_TOKEN with contents:write and pull-requests:write.
+          token: ${{ secrets.PR_WORKFLOW_TOKEN || github.token }}
           branch: chore/refresh-yt-dlp
           commit-message: "chore: bump yt-dlp to ${{ steps.detect.outputs.latest_yt_dlp }}"
           title: "chore: bump yt-dlp to ${{ steps.detect.outputs.latest_yt_dlp }}"
