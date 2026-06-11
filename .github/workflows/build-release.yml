@@ -204,7 +204,30 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p package/bin ffmpeg_tmp
-          curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" -o ffmpeg.tar.xz
+
+          primary_url="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+          curl_common=(
+            --fail
+            --location
+            --retry 5
+            --retry-all-errors
+            --retry-delay 2
+            --user-agent "Mozilla/5.0 (GitHub Actions; ytpl-sync release workflow)"
+          )
+
+          curl "${curl_common[@]}" "$primary_url" -o ffmpeg.tar.xz
+          curl "${curl_common[@]}" "${primary_url}.md5" -o ffmpeg.tar.xz.md5
+
+          expected_md5="$(awk '{print $1}' ffmpeg.tar.xz.md5)"
+          printf '%s *ffmpeg.tar.xz\n' "$expected_md5" | md5sum -c -
+
+          if ! tar -tf ffmpeg.tar.xz >/dev/null 2>&1; then
+            echo "Downloaded FFmpeg payload is not a valid tar archive" >&2
+            ls -l ffmpeg.tar.xz >&2 || true
+            head -c 256 ffmpeg.tar.xz >&2 || true
+            exit 1
+          fi
+
           tar -xf ffmpeg.tar.xz -C ffmpeg_tmp --strip-components=1
           mv ffmpeg_tmp/ffmpeg package/bin/ffmpeg
           chmod +x package/bin/ffmpeg
