@@ -5,11 +5,10 @@ import threading
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..config.settings import Settings
+from ..config.settings import Settings, load_config
 from ..core.events.event_bus import EventBus
 from .bus_bridge import BusBridge
 from .app_icon import load_app_icon
-from .config_store import load_config
 from .runner import SyncRequest, SyncRunner
 from .pages.playlists import PlaylistManagerPage
 from .pages.queue import QueuePage
