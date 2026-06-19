@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ...config.settings import Settings, load_config, normalize_config, save_config
 from ...core.database.db import Database
 from ...core.utils.yt import extract_playlist_id
+from ..autosave import DebouncedAutosave
 from ..smooth_scroll import enable_smooth_scrolling
 
 
@@ -40,11 +41,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
         self._config_path = getattr(settings, "path", None)
         self._config: dict[str, Any] = {}
         self._download_state_by_pid: dict[str, dict[str, Any]] = {}
-        self._suppress_autosave = False
-        self._autosave_timer = QtCore.QTimer(self)
-        self._autosave_timer.setSingleShot(True)
-        self._autosave_timer.setInterval(600)
-        self._autosave_timer.timeout.connect(self._autosave_now)
+        self._autosave = DebouncedAutosave(self, self._autosave_now)
 
         header = QtWidgets.QLabel("Playlists")
         header.setObjectName("pageTitle")
@@ -129,18 +126,16 @@ class PlaylistManagerPage(QtWidgets.QWidget):
     @QtCore.Slot()
     def reload_from_config(self) -> None:
         try:
-            self._suppress_autosave = True
-            self._settings = Settings()
-            self._config_path = getattr(self._settings, "path", None)
-            if self._config_path is None:
-                raise RuntimeError("Config path not available")
-            self._config = normalize_config(load_config(self._config_path))
-            rows = self._rows_from_settings()
+            with self._autosave.suppressed():
+                self._settings = Settings()
+                self._config_path = getattr(self._settings, "path", None)
+                if self._config_path is None:
+                    raise RuntimeError("Config path not available")
+                self._config = normalize_config(load_config(self._config_path))
+                rows = self._rows_from_settings()
         except Exception as exc:
             self._status.setText(f"Failed to load config: {exc}")
             return
-        finally:
-            self._suppress_autosave = False
 
         # Optional DB metadata (last_sync). If DB is missing/corrupt, keep UI usable.
         last_sync_by_id: dict[str, str] = {}
@@ -281,17 +276,11 @@ class PlaylistManagerPage(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def _schedule_autosave(self) -> None:
-        if self._suppress_autosave:
-            return
-        if not self.isEnabled():
-            return
-        self._autosave_timer.start()
+        self._autosave.schedule(enabled=self.isEnabled())
 
     @QtCore.Slot()
     def _autosave_now(self) -> None:
         if self._config_path is None:
-            return
-        if self._suppress_autosave:
             return
         if not self._validate_all(show_status=False):
             # Don't autosave invalid configs; user sees inline errors.

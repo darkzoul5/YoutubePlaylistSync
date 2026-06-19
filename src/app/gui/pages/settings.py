@@ -6,6 +6,7 @@ from typing import Any
 from PySide6 import QtCore, QtWidgets
 
 from ...config.settings import load_config, save_config
+from ..autosave import DebouncedAutosave
 
 
 class SettingsPage(QtWidgets.QWidget):
@@ -81,11 +82,7 @@ class SettingsPage(QtWidgets.QWidget):
         self._status.setWordWrap(True)
         layout.addWidget(self._status)
 
-        self._suppress_autosave = False
-        self._autosave_timer = QtCore.QTimer(self)
-        self._autosave_timer.setSingleShot(True)
-        self._autosave_timer.setInterval(600)
-        self._autosave_timer.timeout.connect(self.save_to_config)
+        self._autosave = DebouncedAutosave(self, self.save_to_config)
 
         # Autosave on focus-out / change.
         self._ffmpeg_path.editingFinished.connect(self._schedule_autosave)
@@ -107,34 +104,30 @@ class SettingsPage(QtWidgets.QWidget):
             self._status.setText("No config loaded yet.")
             return
         try:
-            self._suppress_autosave = True
-            cfg = load_config(self._config_path)
-            self._config = dict(cfg)
+            with self._autosave.suppressed():
+                cfg = load_config(self._config_path)
+                self._config = dict(cfg)
 
-            self._ffmpeg_path.setText(str(self._config.get("ffmpeg_path") or ""))
-            self._max_parallel.setValue(int(self._config.get("max_parallel_downloads") or 2))
-            self._retry_max.setValue(int(self._config.get("retry_max_retries") or 2))
-            self._retry_delay.setValue(float(self._config.get("retry_delay_seconds") or 1.5))
-            self._download_delay.setValue(float(self._config.get("delay_between_downloads_seconds") or 0.0))
+                self._ffmpeg_path.setText(str(self._config.get("ffmpeg_path") or ""))
+                self._max_parallel.setValue(int(self._config.get("max_parallel_downloads") or 2))
+                self._retry_max.setValue(int(self._config.get("retry_max_retries") or 2))
+                self._retry_delay.setValue(float(self._config.get("retry_delay_seconds") or 1.5))
+                self._download_delay.setValue(float(self._config.get("delay_between_downloads_seconds") or 0.0))
 
-            ui = self._config.get("ui")
-            ui = ui if isinstance(ui, dict) else {}
-            tray = ui.get("tray")
-            tray = tray if isinstance(tray, dict) else {}
-            self._close_to_tray.setChecked(bool(tray.get("close_to_tray", False)))
-            self._minimize_to_tray.setChecked(bool(tray.get("minimize_to_tray", False)))
-            self._start_minimized_to_tray.setChecked(bool(tray.get("start_minimized_to_tray", False)))
+                ui = self._config.get("ui")
+                ui = ui if isinstance(ui, dict) else {}
+                tray = ui.get("tray")
+                tray = tray if isinstance(tray, dict) else {}
+                self._close_to_tray.setChecked(bool(tray.get("close_to_tray", False)))
+                self._minimize_to_tray.setChecked(bool(tray.get("minimize_to_tray", False)))
+                self._start_minimized_to_tray.setChecked(bool(tray.get("start_minimized_to_tray", False)))
 
             self._status.setText(f"Loaded settings from {self._config_path}.")
         except Exception as exc:
             self._status.setText(f"Failed to load settings: {exc}")
-        finally:
-            self._suppress_autosave = False
 
     def _schedule_autosave(self) -> None:
-        if self._suppress_autosave:
-            return
-        self._autosave_timer.start()
+        self._autosave.schedule()
 
     @QtCore.Slot()
     def save_to_config(self) -> None:
