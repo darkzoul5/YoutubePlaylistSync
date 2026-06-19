@@ -16,9 +16,6 @@ class PlaylistScanner:
     still start in environments where yt-dlp is unavailable.
     """
 
-    def __init__(self) -> None:
-        pass
-
     def scan(self, playlist_url: str, playlist_id: str, *, ffmpeg_path: Optional[str] = None) -> List[PlaylistItem]:
         """Return the current remote playlist entries as `PlaylistItem` records."""
         try:

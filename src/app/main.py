@@ -7,50 +7,48 @@ Future iterations will wire up scheduler and a GUI.
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
-from .config.settings import Settings
-from .core.database.db import Database
-from .core.sync.service import SyncService
-from .core.sync.executor import ActionExecutor
-from .core.utils.yt import extract_playlist_id
-from .core.utils.deps import DependencyError
+from .core.sync.runner import build_sync_stack, format_action_summary, run_sync_batch
 
 
 def bootstrap(db_path: Path | None = None) -> None:
-    settings = Settings()
-    db = Database((db_path or Path("db/app.db")).resolve())
-    service = SyncService(db)
-    executor = ActionExecutor(db)
+    settings, db, service, executor = build_sync_stack(db_path)
 
-    # Iterate configured playlists and compute actions (no execution yet)
-    for pl in settings.playlists:
-        try:
-            actions = service.sync_from_config(pl)
-            # Apply actions now
-            if actions:
-                print(f"Applying {len(actions)} actions for: {pl.get('url')}")
-                # Summarize before applying
-                counts = {}
-                for a in actions:
-                    counts[a.type] = counts.get(a.type, 0) + 1
-                summary = ", ".join(f"{k.name}:{v}" for k, v in counts.items())
-                print(f"Plan → {summary}")
-                # Execute
-                try:
-                    asyncio.run(executor.execute(actions, pl))
-                except DependencyError as e:
-                    print(f"ERROR: {e}")
-                    continue
-                # Post summary (no DB readback yet)
-                pid = extract_playlist_id(pl.get('url', '')) or pl.get('url', '')
-                db.set_playlist_last_sync(pid)
-                print("Applied actions.")
-            else:
-                print(f"No actions needed for: {pl.get('url')}")
-        except Exception as exc:  # keep bootstrap resilient during early dev
-            print(f"Failed to sync playlist {pl.get('url')}: {exc}")
+    def on_plan(pl: dict, playlist_id: str, actions, counts: dict[str, int]) -> None:
+        del playlist_id
+        print(f"Applying {len(actions)} actions for: {pl.get('url')}")
+        print(f"Plan → {format_action_summary(counts)}")
+
+    def on_no_actions(pl: dict, playlist_id: str) -> None:
+        del playlist_id
+        print(f"No actions needed for: {pl.get('url')}")
+
+    def on_applied(pl: dict, playlist_id: str) -> None:
+        del pl, playlist_id
+        print("Applied actions.")
+
+    def on_import_error(pl: dict, exc: Exception) -> bool:
+        print(f"Failed to sync playlist {pl.get('url')}: {exc}")
+        return True
+
+    def on_dependency_error(pl: dict, exc: Exception) -> bool:
+        del pl
+        print(f"ERROR: {exc}")
+        return True
+
+    run_sync_batch(
+        settings.playlists,
+        db=db,
+        service=service,
+        executor=executor,
+        apply=True,
+        on_plan=on_plan,
+        on_no_actions=on_no_actions,
+        on_applied=on_applied,
+        on_import_error=on_import_error,
+        on_dependency_error=on_dependency_error,
+    )
 
 
 if __name__ == "__main__":

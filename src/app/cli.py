@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import logging
 from pathlib import Path
 
-from .config.settings import Settings
-from .core.database.db import Database
-from .core.sync.service import SyncService
-from .core.sync.executor import ActionExecutor
 from .core.events.event_bus import EventBus
 import re
-from .core.utils.yt import extract_playlist_id
-from .core.utils.deps import DependencyError
+from .core.sync.runner import build_sync_stack, format_action_summary, run_sync_batch
 from .core.utils.logging_setup import configure_logging
 
 
@@ -28,11 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(verbose=bool(args.debug), log_file=Path("app/data/app.log"))
     log = logging.getLogger(__name__)
 
-    settings = Settings()
-    db = Database(args.db.resolve())
-    service = SyncService(db)
     bus = EventBus()
-    executor = ActionExecutor(db, event_bus=bus)
+    settings, db, service, executor = build_sync_stack(args.db, event_bus=bus)
 
     seen_errors: set[str] = set()
 
@@ -73,39 +64,52 @@ def main(argv: list[str] | None = None) -> int:
         bus.subscribe("RenameApplied", on_rename)
         bus.subscribe("FileRecycled", on_recycle)
 
-    playlists = settings.playlists
+    selected_playlists = settings.playlists
     if args.playlist is not None:
-        playlists = [playlists[args.playlist]] if 0 <= args.playlist < len(playlists) else []
+        selected_playlists = [selected_playlists[args.playlist]] if 0 <= args.playlist < len(selected_playlists) else []
 
-    for pl in playlists:
-        url = pl.get("url")
-        pid = extract_playlist_id(url) or (url or "")
-        try:
-            actions = service.sync_from_config(pl)
-        except ImportError as e:
-            msg = str(e)
-            if "yt_dlp" in msg or "yt-dlp" in msg:
-                print("yt-dlp Python package is required. Install with: pip install -U yt-dlp")
-                return 2
-            raise
-        counts: dict[str, int] = {}
-        for a in actions:
-            counts[a.type.name] = counts.get(a.type.name, 0) + 1
-        summary = ", ".join(f"{k}:{v}" for k, v in sorted(counts.items()))
-        print(f"Playlist {pid}: {len(actions)} actions → {summary}")
-        log.info("playlist=%s actions=%s summary=%s", pid, len(actions), summary)
-        if args.apply and actions:
-            try:
-                asyncio.run(executor.execute(actions, pl))
-            except DependencyError as e:
-                print(f"ERROR: {e}")
-                log.error("dependency error: %s", e)
-                return 2
-            db.set_playlist_last_sync(pid)
-            print(f"Applied actions for {pid}.")
-            log.info("playlist=%s applied_actions=%s", pid, len(actions))
+    def on_plan(pl: dict, playlist_id: str, actions, counts: dict[str, int]) -> None:
+        summary = format_action_summary(counts)
+        print(f"Playlist {playlist_id}: {len(actions)} actions → {summary}")
+        log.info("playlist=%s actions=%s summary=%s", playlist_id, len(actions), summary)
 
-    return 0
+    def on_no_actions(pl: dict, playlist_id: str) -> None:
+        del pl
+        print(f"Playlist {playlist_id}: 0 actions →")
+        log.info("playlist=%s actions=0 summary=", playlist_id)
+
+    def on_applied(pl: dict, playlist_id: str) -> None:
+        del pl
+        print(f"Applied actions for {playlist_id}.")
+        log.info("playlist=%s applied_actions=done", playlist_id)
+
+    def on_import_error(pl: dict, exc: Exception) -> bool:
+        del pl
+        msg = str(exc)
+        if "yt_dlp" in msg or "yt-dlp" in msg:
+            print("yt-dlp Python package is required. Install with: pip install -U yt-dlp")
+        else:
+            print(f"ERROR: {exc}")
+        return False
+
+    def on_dependency_error(pl: dict, exc: Exception) -> bool:
+        del pl
+        print(f"ERROR: {exc}")
+        log.error("dependency error: %s", exc)
+        return False
+
+    return run_sync_batch(
+        selected_playlists,
+        db=db,
+        service=service,
+        executor=executor,
+        apply=bool(args.apply),
+        on_plan=on_plan,
+        on_no_actions=on_no_actions,
+        on_applied=on_applied,
+        on_import_error=on_import_error,
+        on_dependency_error=on_dependency_error,
+    )
 
 
 if __name__ == "__main__":

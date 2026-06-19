@@ -52,7 +52,7 @@ class QueueManager:
 
     async def start(self, worker_coro):
         """Start the worker tasks that drain the queue."""
-        async def runner(idx: int):
+        async def runner():
             while not self._stopped.is_set():
                 job = await self._queue.get()
                 try:
@@ -60,7 +60,7 @@ class QueueManager:
                 finally:
                     self._queue.task_done()
 
-        self._workers = [asyncio.create_task(runner(i)) for i in range(self._concurrency)]
+        self._workers = [asyncio.create_task(runner()) for _ in range(self._concurrency)]
 
     async def stop(self):
         """Cancel all worker tasks and mark the queue as stopped."""
