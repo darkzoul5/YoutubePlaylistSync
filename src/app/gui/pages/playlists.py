@@ -172,6 +172,19 @@ class PlaylistManagerPage(QtWidgets.QWidget):
         self._status.setText("Cancelling…")
         self.cancel_requested.emit()
 
+    def _iter_cards(self):
+        for i in range(self._list.count()):
+            item = self._list.item(i)
+            widget = self._list.itemWidget(item)
+            if isinstance(widget, _PlaylistCard):
+                yield widget
+
+    def _card_for_playlist_id(self, playlist_id: str) -> _PlaylistCard | None:
+        for card in self._iter_cards():
+            if card.playlist_id() == playlist_id:
+                return card
+        return None
+
     def set_running(self, running: bool) -> None:
         self._sync_all_btn.setEnabled(not running)
         self._cancel_btn.setEnabled(running)
@@ -181,11 +194,8 @@ class PlaylistManagerPage(QtWidgets.QWidget):
         # Keep the list enabled so per-card Pause/Cancel remains clickable.
         self._list.setEnabled(True)
         # But freeze editing while a sync is running to avoid racey config edits.
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if isinstance(w, _PlaylistCard):
-                w.set_editing_enabled(not running)
+        for card in self._iter_cards():
+            card.set_editing_enabled(not running)
 
     @QtCore.Slot()
     def _add_playlist(self) -> None:
@@ -227,13 +237,8 @@ class PlaylistManagerPage(QtWidgets.QWidget):
 
     def _table_to_playlists(self) -> list[dict[str, Any]]:
         playlists: list[dict[str, Any]] = []
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if not isinstance(w, _PlaylistCard):
-                continue
-            pl = w.to_dict()
-            playlists.append(pl)
+        for card in self._iter_cards():
+            playlists.append(card.to_dict())
         return playlists
 
     @QtCore.Slot()
@@ -254,22 +259,16 @@ class PlaylistManagerPage(QtWidgets.QWidget):
             self._status.setText(f"Failed to save config: {exc}")
 
     def _reindex_cards(self) -> None:
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if isinstance(w, _PlaylistCard):
-                w.set_index(i)
+        for i, card in enumerate(self._iter_cards()):
+            card.set_index(i)
 
     def _validate_all(self, *, show_status: bool) -> bool:
         ok = True
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if isinstance(w, _PlaylistCard):
-                errs = w.validate()
-                w.set_status("; ".join(errs) if errs else "")
-                if errs:
-                    ok = False
+        for card in self._iter_cards():
+            errs = card.validate()
+            card.set_status("; ".join(errs) if errs else "")
+            if errs:
+                ok = False
         if not ok and show_status:
             self._status.setText("Fix invalid playlists before saving/syncing.")
         return ok
@@ -298,22 +297,25 @@ class PlaylistManagerPage(QtWidgets.QWidget):
             pid = payload.get("playlist_id")
             total = payload.get("actions_total")
             self._sync_state.setText(f"Sync started: {pid} ({total} actions)")
-            self._set_card_status(str(pid or ""), "running")
-            self._set_active_card(str(pid or ""), running=True, paused=False)
+            playlist_id = str(pid or "")
+            self._set_card_status(playlist_id, "running")
+            self._set_active_card(playlist_id, running=True, paused=False)
         elif name == "SyncSummary":
             pid = payload.get("playlist_id")
             dur = payload.get("duration_s")
             counts = payload.get("counts")
             self._sync_state.setText(f"Sync summary: {pid} in {dur}s counts={counts}")
-            self._set_card_status(str(pid or ""), f"done in {dur}s")
+            playlist_id = str(pid or "")
+            self._set_card_status(playlist_id, f"done in {dur}s")
             ls = payload.get("last_sync")
             if ls:
-                self._set_card_last_sync(str(pid or ""), str(ls))
+                self._set_card_last_sync(playlist_id, str(ls))
         elif name == "SyncFinished":
             pid = payload.get("playlist_id")
             self._sync_state.setText(f"Sync finished: {pid}")
-            self._set_card_status(str(pid or ""), "finished")
-            self._set_active_card(str(pid or ""), running=False, paused=False)
+            playlist_id = str(pid or "")
+            self._set_card_status(playlist_id, "finished")
+            self._set_active_card(playlist_id, running=False, paused=False)
             self.set_running(False)
         elif name == "SyncError":
             self._sync_state.setText(f"Sync error: {payload.get('error')}")
@@ -370,37 +372,26 @@ class PlaylistManagerPage(QtWidgets.QWidget):
             self._set_active_card(pid, running=True, paused=True)
 
     def _set_card_progress(self, playlist_id: str, progress: float) -> None:
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if isinstance(w, _PlaylistCard) and w.playlist_id() == playlist_id:
-                w.set_progress(progress)
+        card = self._card_for_playlist_id(playlist_id)
+        if card is not None:
+            card.set_progress(progress)
 
     def _set_card_status(self, playlist_id: str, text: str) -> None:
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if isinstance(w, _PlaylistCard):
-                if w.playlist_id() == playlist_id:
-                    w.set_status(text)
+        card = self._card_for_playlist_id(playlist_id)
+        if card is not None:
+            card.set_status(text)
 
     def _set_card_last_sync(self, playlist_id: str, last_sync: str) -> None:
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if isinstance(w, _PlaylistCard) and w.playlist_id() == playlist_id:
-                w.set_last_sync(last_sync)
+        card = self._card_for_playlist_id(playlist_id)
+        if card is not None:
+            card.set_last_sync(last_sync)
 
     def _set_active_card(self, playlist_id: str, *, running: bool, paused: bool) -> None:
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            w = self._list.itemWidget(item)
-            if not isinstance(w, _PlaylistCard):
-                continue
-            is_active = w.playlist_id() == playlist_id
-            w.set_active(is_active and running)
-            if is_active:
-                w.set_paused(paused)
+        card = self._card_for_playlist_id(playlist_id)
+        if card is None:
+            return
+        card.set_active(running)
+        card.set_paused(paused)
 
 
 class _PlaylistCard(QtWidgets.QFrame):
