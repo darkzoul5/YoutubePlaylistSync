@@ -5,7 +5,7 @@ import threading
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..config.settings import Settings, load_config
+from ..config.settings import Settings, get_tray_config, load_config
 from ..core.events.event_bus import EventBus
 from .bus_bridge import BusBridge
 from .app_icon import load_app_icon
@@ -132,11 +132,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if cfg_path is None:
                 return {}
             raw = load_config(cfg_path)
-            ui = raw.get("ui")
-            ui = ui if isinstance(ui, dict) else {}
-            tray = ui.get("tray")
-            tray = tray if isinstance(tray, dict) else {}
-            return dict(tray)
+            return get_tray_config(raw)
         except Exception:
             return {}
 

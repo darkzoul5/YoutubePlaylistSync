@@ -52,6 +52,30 @@ def normalize_config(data: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
+def get_tray_config(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the tray config as a safe dict copy."""
+    ui = data.get("ui")
+    ui = ui if isinstance(ui, dict) else {}
+    tray = ui.get("tray")
+    tray = tray if isinstance(tray, dict) else {}
+    return dict(tray)
+
+
+def ensure_tray_config(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensure the nested ui.tray dict exists and return it for mutation."""
+    ui = data.get("ui")
+    if not isinstance(ui, dict):
+        ui = {}
+        data["ui"] = ui
+
+    tray = ui.get("tray")
+    if not isinstance(tray, dict):
+        tray = {}
+        ui["tray"] = tray
+
+    return tray
+
+
 class Settings:
     """Unified configuration loader that combines file I/O and playlist merging."""
 

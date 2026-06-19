@@ -5,7 +5,7 @@ from typing import Any
 
 from PySide6 import QtCore, QtWidgets
 
-from ...config.settings import load_config, save_config
+from ...config.settings import ensure_tray_config, get_tray_config, load_config, save_config
 from ..autosave import DebouncedAutosave
 
 
@@ -114,10 +114,7 @@ class SettingsPage(QtWidgets.QWidget):
                 self._retry_delay.setValue(float(self._config.get("retry_delay_seconds") or 1.5))
                 self._download_delay.setValue(float(self._config.get("delay_between_downloads_seconds") or 0.0))
 
-                ui = self._config.get("ui")
-                ui = ui if isinstance(ui, dict) else {}
-                tray = ui.get("tray")
-                tray = tray if isinstance(tray, dict) else {}
+                tray = get_tray_config(self._config)
                 self._close_to_tray.setChecked(bool(tray.get("close_to_tray", False)))
                 self._minimize_to_tray.setChecked(bool(tray.get("minimize_to_tray", False)))
                 self._start_minimized_to_tray.setChecked(bool(tray.get("start_minimized_to_tray", False)))
@@ -142,15 +139,10 @@ class SettingsPage(QtWidgets.QWidget):
             data["retry_delay_seconds"] = float(self._retry_delay.value())
             data["delay_between_downloads_seconds"] = float(self._download_delay.value())
 
-            ui = data.get("ui")
-            ui = ui if isinstance(ui, dict) else {}
-            tray = ui.get("tray")
-            tray = tray if isinstance(tray, dict) else {}
+            tray = ensure_tray_config(data)
             tray["close_to_tray"] = bool(self._close_to_tray.isChecked())
             tray["minimize_to_tray"] = bool(self._minimize_to_tray.isChecked())
             tray["start_minimized_to_tray"] = bool(self._start_minimized_to_tray.isChecked())
-            ui["tray"] = tray
-            data["ui"] = ui
 
             save_config(self._config_path, data)
             self._status.setText(f"Saved settings to {self._config_path}.")
