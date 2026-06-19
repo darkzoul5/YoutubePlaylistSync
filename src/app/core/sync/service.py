@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Iterable, List, Mapping, Sequence
 
 from ..database.db import Database
-from ..models import FilesystemEntry, PlaylistItem, SyncAction, SyncActionType
+from ..models import PlaylistItem, SyncAction, SyncActionType
 from ..scanner.playlist_scanner import PlaylistScanner
 from ..sync.filesystem import list_files
 from ..utils.naming import sanitize_title
@@ -36,7 +36,7 @@ class SyncService:
         self,
         remote: Sequence[PlaylistItem],
         db_index: Mapping[str, PlaylistItem],
-        fs_entries: Iterable[FilesystemEntry],
+        fs_entries: Iterable[Path],
         extension: str,
     ) -> List[SyncAction]:
         """Compare remote items, database state, and filesystem to produce actions.
@@ -50,7 +50,7 @@ class SyncService:
             for item in remote
         }
 
-        fs_by_name = {e.name: e for e in fs_entries}
+        fs_by_name = {p.name: p for p in fs_entries}
 
         for item in remote:
             desired_name = desired_names[item.video_id]

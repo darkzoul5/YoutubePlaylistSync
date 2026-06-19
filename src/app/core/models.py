@@ -49,8 +49,3 @@ class SyncAction:
     from_name: Optional[str] = None
     to_name: Optional[str] = None
 
-
-@dataclass(frozen=True)
-class FilesystemEntry:
-    name: str
-    path: Path
