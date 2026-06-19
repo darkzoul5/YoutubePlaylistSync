@@ -242,21 +242,20 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception:
             pass
 
+    def _emit_page_event(self, name: str, payload: dict) -> None:
+        for page in self._pages:
+            handler = getattr(page, "on_event", None)
+            if not callable(handler):
+                continue
+            try:
+                handler(name, payload)
+            except Exception:
+                pass
+
     @QtCore.Slot(str, dict)
     def _on_bus_event(self, name: str, payload: dict) -> None:
-        # Fan out to interested pages.
-        try:
-            self._queue_page.on_event(name, payload)
-        except Exception:
-            pass
-        try:
-            self._logs_page.on_event(name, payload)
-        except Exception:
-            pass
-        try:
-            self._playlists_page.on_event(name, payload)
-        except Exception:
-            pass
+        # Fan out to any page that exposes on_event().
+        self._emit_page_event(name, payload)
 
         # Auto-pause on YouTube bot-check/rate-limit surface.
         if name == "SyncPaused":
@@ -302,7 +301,7 @@ class MainWindow(QtWidgets.QMainWindow):
     @QtCore.Slot(bool, str)
     def _on_sync_finished(self, ok: bool, message: str) -> None:
         if not ok:
-            self._logs_page.on_event("SyncError", {"error": message})
+            self._emit_page_event("SyncError", {"error": message})
         self._playlists_page.set_running(False)
 
         # Mark idle so "Sync all" can be started again.
