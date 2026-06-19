@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
+from typing import Iterable, List, Mapping, Sequence
 
 from ..database.db import Database
-from ..models import PlaylistItem, SyncAction
+from ..models import FilesystemEntry, PlaylistItem, SyncAction, SyncActionType
 from ..scanner.playlist_scanner import PlaylistScanner
-from ..sync.diff_engine import DiffEngine
 from ..sync.filesystem import list_files
 from ..utils.naming import sanitize_title
 from ..utils.yt import extract_playlist_id
@@ -16,14 +15,13 @@ class SyncService:
     """High-level orchestration for a single playlist sync pass.
 
     The service pulls the latest remote playlist snapshot, persists the
-    playlist and item metadata in the database, and asks the diff engine to
-    compare the remote state with the local filesystem.
+    playlist and item metadata in the database, and compares the remote state
+    with the local filesystem to produce sync actions.
     """
 
     def __init__(self, db: Database) -> None:
         self.db = db
         self.scanner = PlaylistScanner()
-        self.diff = DiffEngine()
 
     def _mode_to_extensions(self, mode: str) -> list[str]:
         if mode == "audio":
@@ -33,6 +31,59 @@ class SyncService:
         if mode == "both":
             return [".mp3", ".mp4"]
         return [".mp4"]
+
+    def _compute_actions(
+        self,
+        remote: Sequence[PlaylistItem],
+        db_index: Mapping[str, PlaylistItem],
+        fs_entries: Iterable[FilesystemEntry],
+        extension: str,
+    ) -> List[SyncAction]:
+        """Compare remote items, database state, and filesystem to produce actions.
+        
+        Computes DOWNLOAD/RENAME/DELETE based on the filename scheme "0001 - Title.ext".
+        """
+        actions: List[SyncAction] = []
+
+        desired_names = {
+            item.video_id: f"{item.playlist_index:04d} - {item.title}{extension}"
+            for item in remote
+        }
+
+        fs_by_name = {e.name: e for e in fs_entries}
+
+        for item in remote:
+            desired_name = desired_names[item.video_id]
+            # If DB knows the current local filename and it already matches and exists -> nothing to do
+            if item.local_filename == desired_name and desired_name in fs_by_name:
+                continue
+
+            # If DB knows a different current filename and it exists -> plan a rename
+            if item.local_filename and item.local_filename in fs_by_name and item.local_filename != desired_name:
+                actions.append(
+                    SyncAction(
+                        SyncActionType.RENAME,
+                        item=item,
+                        from_name=item.local_filename,
+                        to_name=desired_name,
+                    )
+                )
+                continue
+
+            # If the desired file already exists on disk but DB doesn't reflect it -> skip (already correct)
+            if desired_name in fs_by_name:
+                actions.append(SyncAction(SyncActionType.SKIP, item=item, to_name=desired_name))
+                continue
+
+            # Otherwise, we need to download
+            actions.append(SyncAction(SyncActionType.DOWNLOAD, item=item, to_name=desired_name))
+
+        known_ids = {i.video_id for i in remote}
+        for vid, db_item in db_index.items():
+            if vid not in known_ids and db_item.local_filename:
+                actions.append(SyncAction(SyncActionType.DELETE, item=db_item, from_name=db_item.local_filename))
+
+        return actions
 
     def sync_from_config(self, playlist_cfg: dict) -> List[SyncAction]:
         """Return the sync actions required to bring one playlist in sync.
@@ -128,7 +179,7 @@ class SyncService:
                 fs = list_files(save_path / "video", [".mp4"])
             else:
                 fs = list_files(save_path, [ext])
-            actions = self.diff.compute_actions(augmented, db_index, fs, ext)
+            actions = self._compute_actions(augmented, db_index, fs, ext)
             merged_actions.extend(actions)
 
         return merged_actions
