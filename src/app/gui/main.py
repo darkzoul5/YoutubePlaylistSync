@@ -131,7 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cfg_path = getattr(self._settings, "path", None)
             if cfg_path is None:
                 return {}
-            raw = load_config(cfg_path).data
+            raw = load_config(cfg_path)
             ui = raw.get("ui")
             ui = ui if isinstance(ui, dict) else {}
             tray = ui.get("tray")

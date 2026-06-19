@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from PySide6 import QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from ..smooth_scroll import enable_smooth_scrolling
 
@@ -41,4 +41,4 @@ class LogsPage(QtWidgets.QWidget):
         except Exception:
             line = f"{name}: {payload}"
         self._text.appendPlainText(line)
-        self._text.moveCursor(self._text.textCursor().End)
+        self._text.moveCursor(QtGui.QTextCursor.MoveOperation.End)

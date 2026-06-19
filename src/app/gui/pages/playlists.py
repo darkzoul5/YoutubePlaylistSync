@@ -134,7 +134,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
             self._config_path = getattr(self._settings, "path", None)
             if self._config_path is None:
                 raise RuntimeError("Config path not available")
-            self._config = normalize_config(load_config(self._config_path).data)
+            self._config = normalize_config(load_config(self._config_path))
             rows = self._rows_from_settings()
         except Exception as exc:
             self._status.setText(f"Failed to load config: {exc}")

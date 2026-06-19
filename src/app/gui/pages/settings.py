@@ -109,7 +109,7 @@ class SettingsPage(QtWidgets.QWidget):
         try:
             self._suppress_autosave = True
             cfg = load_config(self._config_path)
-            self._config = dict(cfg.data)
+            self._config = dict(cfg)
 
             self._ffmpeg_path.setText(str(self._config.get("ffmpeg_path") or ""))
             self._max_parallel.setValue(int(self._config.get("max_parallel_downloads") or 2))
