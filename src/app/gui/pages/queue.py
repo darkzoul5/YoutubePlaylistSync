@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6 import QtCore, QtWidgets
 
 from ..smooth_scroll import enable_smooth_scrolling
@@ -109,6 +111,22 @@ class QueuePage(QtWidgets.QWidget):
             self._table.setItem(row, col, item)
         return item
 
+    def _target_text(self, payload: dict, current: str = "") -> str:
+        value = (
+            payload.get("target")
+            or payload.get("filename")
+            or payload.get("output_path")
+            or payload.get("path")
+            or payload.get("to")
+            or current
+        )
+        if not value:
+            return current
+        try:
+            return Path(str(value)).name or str(value)
+        except Exception:
+            return str(value)
+
     @QtCore.Slot()
     def _flush_pending(self) -> None:
         if not self._pending_by_key:
@@ -131,12 +149,13 @@ class QueuePage(QtWidgets.QWidget):
                 speed_item = self._ensure_item(row, 4, "")
                 eta_item = self._ensure_item(row, 5, "")
                 target_item = self._ensure_item(row, 6, "")
+                target_text = target_item.text()
 
                 if name == "DownloadStarted":
                     status_item.setText("started")
-                    tgt = payload.get("target") or payload.get("filename") or ""
-                    if tgt:
-                        target_item.setText(str(tgt))
+                    target_text = self._target_text(payload, target_text)
+                    if target_text:
+                        target_item.setText(target_text)
                 elif name == "DownloadProgress":
                     status_item.setText(str(payload.get("status") or "downloading"))
                     prog = payload.get("progress")
@@ -155,14 +174,14 @@ class QueuePage(QtWidgets.QWidget):
                     et = payload.get("eta")
                     if isinstance(et, (int, float)) and et >= 0:
                         eta_item.setText(f"{int(et)}s")
-                    fn = payload.get("filename")
-                    if fn:
-                        target_item.setText(str(fn))
+                    target_text = self._target_text(payload, target_text)
+                    if target_text:
+                        target_item.setText(target_text)
                 elif name == "DownloadCompleted":
                     status_item.setText("completed")
-                    tgt = payload.get("target") or ""
-                    if tgt:
-                        target_item.setText(str(tgt))
+                    target_text = self._target_text(payload, target_text)
+                    if target_text:
+                        target_item.setText(target_text)
                     bar = self._table.cellWidget(row, 3)
                     if bar is None:
                         bar = QtWidgets.QProgressBar()
