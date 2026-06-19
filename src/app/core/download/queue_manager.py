@@ -21,19 +21,19 @@ class JobState(str, Enum):
 
 @dataclass
 class DownloadJob:
+    """Configuration and status for a single download job."""
     item: PlaylistItem
     output_path: Optional[Path] = None
     url: Optional[str] = None
     mode: str = "audio"  # audio|video
-    state: JobState = JobState.QUEUED
-    error: Optional[str] = None
     ffmpeg_path: Optional[str] = None
     max_download_quality: Optional[str] = None
-    playlist_id: Optional[str] = None
-    progress_callback: Optional[Callable[[dict[str, Any]], None]] = None
-    cancel_check: Optional[Callable[[], bool]] = None
     audio_output_path: Optional[Path] = None  # when mode=video and we also want mp3
     keep_video: bool = True
+    
+    # Status fields (mutable during execution)
+    state: JobState = JobState.QUEUED
+    error: Optional[str] = None
 
 
 class QueueManager:
