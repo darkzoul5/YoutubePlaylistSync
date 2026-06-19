@@ -5,7 +5,7 @@ from typing import Any
 
 from PySide6 import QtCore, QtWidgets
 
-from ..config.settings import load_config, save_config
+from ...config.settings import load_config, save_config
 
 
 class SettingsPage(QtWidgets.QWidget):
