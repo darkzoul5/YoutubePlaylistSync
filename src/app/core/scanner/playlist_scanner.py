@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from ..models import PlaylistItem
+
+logger = logging.getLogger(__name__)
 
 
 class PlaylistScanner:
@@ -38,8 +41,8 @@ class PlaylistScanner:
                 p = Path(str(ffmpeg_path))
                 if p.exists():
                     ydl_opts["ffmpeg_location"] = str(p)
-            except Exception:
-                pass
+            except (OSError, TypeError, ValueError) as exc:
+                logger.debug("Invalid ffmpeg path: %s", exc)
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[attr-defined]
             info = ydl.extract_info(playlist_url, download=False)
