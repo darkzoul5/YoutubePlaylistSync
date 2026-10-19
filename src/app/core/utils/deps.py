@@ -28,7 +28,7 @@ def get_yt_dlp_version() -> str | None:
 
         # yt-dlp exposes version in different places depending on install
         return getattr(yt_dlp, "__version__", None) or getattr(getattr(yt_dlp, "version", None), "__version__", None)
-    except Exception:
+    except (ImportError, AttributeError, TypeError):
         return None
 
 
@@ -78,7 +78,7 @@ def ensure_ffmpeg_available(ffmpeg_hint: str | None) -> tuple[str, str]:
     """
     ffmpeg_exe = "ffmpeg.exe" if sys.platform.startswith("win") else "ffmpeg"
 
-    ffmpeg_path, ffmpeg_dir = _resolve_tool_paths(ffmpeg_hint, ffmpeg_exe)
+    ffmpeg_path, _ = _resolve_tool_paths(ffmpeg_hint, ffmpeg_exe)
     if not ffmpeg_path:
         raise DependencyError("ffmpeg not found. Install ffmpeg or set 'ffmpeg_path' in config.")
 

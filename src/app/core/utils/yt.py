@@ -10,5 +10,5 @@ def extract_playlist_id(url: str) -> str | None:
         if "list" in qs and qs.get("list"):
             return qs.get("list", [None])[0]
         return None
-    except Exception:
+    except (TypeError, ValueError):
         return None

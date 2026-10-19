@@ -17,9 +17,11 @@ def _read_text(path: Path) -> str | None:
         if path.exists():
             text = path.read_text(encoding="utf-8").strip()
             return text or None
-    except Exception:
-        pass
+    except (OSError, UnicodeError):
+        return None
     return None
+
+
 def get_app_version() -> str:
     """
     Returns the packaged app version.
