@@ -126,7 +126,7 @@ class SettingsPage(QtWidgets.QWidget):
             self._start_minimized_to_tray.setChecked(bool(tray.get("start_minimized_to_tray", False)))
 
             self._status.setText(f"Loaded settings from {self._config_path}.")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - show load failures in the UI
             self._status.setText(f"Failed to load settings: {exc}")
         finally:
             self._suppress_autosave = False
@@ -161,5 +161,5 @@ class SettingsPage(QtWidgets.QWidget):
 
             save_config(self._config_path, data)
             self._status.setText(f"Saved settings to {self._config_path}.")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - show save failures in the UI
             self._status.setText(f"Failed to save settings: {exc}")

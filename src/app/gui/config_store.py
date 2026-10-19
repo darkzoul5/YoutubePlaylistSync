@@ -15,7 +15,7 @@ class AppConfig:
 def load_config(path: Path) -> AppConfig:
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
-        raise ValueError("config root must be a JSON object")
+        raise TypeError("config root must be a JSON object")
     return AppConfig(data=raw, path=path)
 
 

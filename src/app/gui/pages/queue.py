@@ -141,7 +141,7 @@ class QueuePage(QtWidgets.QWidget):
                     status_item.setText(str(payload.get("status") or "downloading"))
                     prog = payload.get("progress")
                     if isinstance(prog, (int, float)):
-                        pct = max(0, min(100, int(round(prog * 100))))
+                        pct = max(0, min(100, round(prog * 100)))
                         bar = self._table.cellWidget(row, 3)
                         if bar is None:
                             bar = QtWidgets.QProgressBar()

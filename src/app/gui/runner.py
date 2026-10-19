@@ -70,5 +70,5 @@ class SyncRunner(QtCore.QObject):
                 self.finished.emit(False, "cancelled")
             else:
                 self.finished.emit(True, "done")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - report worker failures through the UI signal
             self.finished.emit(False, str(exc))

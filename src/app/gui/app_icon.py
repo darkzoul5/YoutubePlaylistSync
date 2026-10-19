@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
 from PySide6 import QtGui, QtWidgets
+
+logger = logging.getLogger(__name__)
 
 
 def _resource_base() -> Path:
@@ -31,16 +34,16 @@ def load_app_icon() -> QtGui.QIcon:
                 icon = QtGui.QIcon(str(p))
                 if not icon.isNull():
                     return icon
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - icon loading is best effort
+            logger.debug("Failed to load app icon from %s: %s", p, exc)
 
     # Fallback to a platform theme icon (Linux) or a generic icon.
     try:
         themed = QtGui.QIcon.fromTheme("applications-multimedia")
         if not themed.isNull():
             return themed
-    except Exception:
-        pass
+    except Exception as exc:  # noqa: BLE001 - themed icon loading is best effort
+        logger.debug("Failed to load themed app icon: %s", exc)
 
     return QtWidgets.QApplication.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
 

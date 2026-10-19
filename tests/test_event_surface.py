@@ -37,7 +37,7 @@ def test_executor_emits_sync_events(tmp_path):
     assert "SyncSummary" in names
     assert "SyncFinished" in names
 
-    summary = [p for n, p in published if n == "SyncSummary"][0]
+    summary = next(p for n, p in published if n == "SyncSummary")
     assert summary["playlist_id"] == "p"
     assert "duration_s" in summary
     assert isinstance(summary["counts"], dict)

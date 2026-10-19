@@ -19,7 +19,7 @@ class _SmoothWheelFilter(QtCore.QObject):
         try:
             angle_y = wheel.angleDelta().y()
             pixel_y = wheel.pixelDelta().y()
-        except Exception:
+        except Exception:  # noqa: BLE001 - fall back to native scrolling for unknown event types
             return super().eventFilter(obj, event)
 
         dy = pixel_y if pixel_y else angle_y
@@ -34,7 +34,7 @@ class _SmoothWheelFilter(QtCore.QObject):
         if pixel_y:
             delta = -dy
         else:
-            delta = int(round(-dy / 120.0 * base_step))
+            delta = round(-dy / 120.0 * base_step)
 
         target = max(sb.minimum(), min(sb.maximum(), start + delta))
         if target == start:

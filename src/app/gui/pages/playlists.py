@@ -137,7 +137,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
                 raise RuntimeError("Config path not available")
             self._config = normalize_config(load_config(self._config_path).data)
             rows = self._rows_from_settings()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - show config load failures in the UI
             self._status.setText(f"Failed to load config: {exc}")
             return
         finally:
@@ -152,7 +152,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
                 ls = db.get_playlist_last_sync(pid)
                 if ls:
                     last_sync_by_id[pid] = str(ls)
-        except Exception:
+        except Exception:  # noqa: BLE001 - database metadata is optional
             last_sync_by_id = {}
 
         self._list.clear()
@@ -256,7 +256,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
             self._status.setText(f"Saved {len(data['playlists'])} playlists to {self._config_path}.")
             # Reload settings to reflect merged defaults
             self.reload_from_config()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - show config save failures in the UI
             self._status.setText(f"Failed to save config: {exc}")
 
     def _reindex_cards(self) -> None:
@@ -302,7 +302,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
             data["playlists"] = self._table_to_playlists()
             save_config(self._config_path, data)
             self._status.setText(f"Autosaved to {self._config_path}.")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - show autosave failures in the UI
             self._status.setText(f"Autosave failed: {exc}")
 
     def on_event(self, name: str, payload: dict) -> None:
@@ -355,7 +355,7 @@ class PlaylistManagerPage(QtWidgets.QWidget):
                     self._download_state_by_pid[pid]["video_id"] = vid
                 self._download_state_by_pid[pid]["status"] = str(payload.get("status") or "downloading")
                 self._set_card_progress(pid, p)
-                pct = int(round(max(0.0, min(1.0, p)) * 100))
+                pct = round(max(0.0, min(1.0, p)) * 100)
                 st = str(payload.get("status") or "downloading")
                 tail = f"{vid} {pct}%" if vid else f"{pct}%"
                 self._set_card_status(pid, f"{st} {tail}".strip())
@@ -392,9 +392,8 @@ class PlaylistManagerPage(QtWidgets.QWidget):
         for i in range(self._list.count()):
             item = self._list.item(i)
             w = self._list.itemWidget(item)
-            if isinstance(w, _PlaylistCard):
-                if w.playlist_id() == playlist_id:
-                    w.set_status(text)
+            if isinstance(w, _PlaylistCard) and w.playlist_id() == playlist_id:
+                w.set_status(text)
 
     def _set_card_last_sync(self, playlist_id: str, last_sync: str) -> None:
         for i in range(self._list.count()):
@@ -604,7 +603,7 @@ class _PlaylistCard(QtWidgets.QFrame):
         return extract_playlist_id(url) or url
 
     def set_progress(self, progress: float) -> None:
-        pct = max(0, min(100, int(round(progress * 100))))
+        pct = max(0, min(100, round(progress * 100)))
         self._progress.setValue(pct)
 
     def set_last_sync(self, last_sync: str) -> None:
@@ -613,7 +612,7 @@ class _PlaylistCard(QtWidgets.QFrame):
     def validate(self) -> list[str]:
         errs: list[str] = []
         url = self._url.text().strip()
-        if not url or not (url.startswith("http://") or url.startswith("https://")):
+        if not url or not url.startswith(("http://", "https://")):
             errs.append("URL required")
         mode = self._mode.currentText().strip()
         if mode not in {"video", "audio", "both"}:

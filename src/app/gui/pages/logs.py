@@ -38,7 +38,7 @@ class LogsPage(QtWidgets.QWidget):
         # Keep this lightweight: append a single-line JSON entry.
         try:
             line = json.dumps({"event": name, **payload}, ensure_ascii=False)
-        except Exception:
+        except Exception:  # noqa: BLE001 - fall back to a readable representation
             line = f"{name}: {payload}"
         self._text.appendPlainText(line)
         self._text.moveCursor(self._text.textCursor().End)

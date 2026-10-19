@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 import threading
 
@@ -16,6 +17,8 @@ from .pages.playlists import PlaylistManagerPage
 from .pages.queue import QueuePage
 from .pages.settings import SettingsPage
 from .runner import SyncRequest, SyncRunner
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -90,8 +93,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if cfg_path is not None:
             try:
                 self._settings_page.set_config_path(cfg_path)
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001 - optional settings-page wiring
+                logger.debug("Failed to set settings config path: %s", exc)
 
         self._playlists_page.cancel_requested.connect(self._cancel_sync)
         self._queue_page.cancel_sync_requested.connect(self._cancel_sync)
@@ -138,7 +141,8 @@ class MainWindow(QtWidgets.QMainWindow):
             tray = ui.get("tray")
             tray = tray if isinstance(tray, dict) else {}
             return dict(tray)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - config fallback keeps the UI usable
+            logger.debug("Failed to load tray configuration: %s", exc)
             return {}
 
     def _close_to_tray_enabled(self) -> bool:
@@ -158,7 +162,8 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             if not QtWidgets.QSystemTrayIcon.isSystemTrayAvailable():
                 return
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - tray support is optional
+            logger.debug("Failed to check system tray availability: %s", exc)
             return
 
         icon = load_app_icon()
@@ -211,27 +216,30 @@ class MainWindow(QtWidgets.QMainWindow):
                         QtWidgets.QSystemTrayIcon.MessageIcon.Information,
                         3000,
                     )
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001 - tray notification is best effort
+                    logger.debug("Failed to show tray notification: %s", exc)
             return
         if self._tray is not None and not self._close_to_tray_enabled():
             # Explicitly quit, because the app may be configured to keep running without windows.
             try:
                 event.accept()
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001 - close event acceptance is best effort
+                logger.debug("Failed to accept close event: %s", exc)
             QtWidgets.QApplication.quit()
             return
         super().closeEvent(event)
 
     def changeEvent(self, event: QtCore.QEvent) -> None:  # type: ignore[override]
         try:
-            if event.type() == QtCore.QEvent.Type.WindowStateChange:
-                if self._tray is not None and self._minimize_to_tray_enabled():
-                    if bool(self.windowState() & QtCore.Qt.WindowState.WindowMinimized):
-                        QtCore.QTimer.singleShot(0, self.hide)
-        except Exception:
-            pass
+            if (
+                event.type() == QtCore.QEvent.Type.WindowStateChange
+                and self._tray is not None
+                and self._minimize_to_tray_enabled()
+                and bool(self.windowState() & QtCore.Qt.WindowState.WindowMinimized)
+            ):
+                QtCore.QTimer.singleShot(0, self.hide)
+        except Exception as exc:  # noqa: BLE001 - window state handling is best effort
+            logger.debug("Failed to handle window state change: %s", exc)
         super().changeEvent(event)
 
     def _refresh_queue_labels(self) -> None:
@@ -244,24 +252,24 @@ class MainWindow(QtWidgets.QMainWindow):
                 pid = extract_playlist_id(url) or url
                 labels[pid] = str(pl.get("name") or f"Playlist {idx}")
             self._queue_page.set_playlist_labels(labels)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - queue labels are best effort
+            logger.debug("Failed to refresh queue labels: %s", exc)
 
     @QtCore.Slot(str, dict)
     def _on_bus_event(self, name: str, payload: dict) -> None:
         # Fan out to interested pages.
         try:
             self._queue_page.on_event(name, payload)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - page event fan-out is isolated
+            logger.debug("Queue page event handler failed: %s", exc)
         try:
             self._logs_page.on_event(name, payload)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - page event fan-out is isolated
+            logger.debug("Logs page event handler failed: %s", exc)
         try:
             self._playlists_page.on_event(name, payload)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - page event fan-out is isolated
+            logger.debug("Playlists page event handler failed: %s", exc)
 
         # Auto-pause on YouTube bot-check/rate-limit surface.
         if name == "SyncPaused":
@@ -315,8 +323,8 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 self._thread.quit()
                 self._thread.wait(2000)
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001 - thread shutdown is best effort
+                logger.debug("Failed to stop sync thread: %s", exc)
         self._runner = None
         self._cancel_flag = None
         self._pause_flag = None
@@ -330,8 +338,8 @@ class MainWindow(QtWidgets.QMainWindow):
             if cfg_path is not None:
                 self._settings_page.set_config_path(cfg_path)
             self._refresh_queue_labels()
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - config refresh is best effort
+            logger.debug("Failed to refresh configuration after sync: %s", exc)
 
         # Continue "sync all" chain if active.
         if hasattr(self, "_sync_queue") and self._sync_queue:

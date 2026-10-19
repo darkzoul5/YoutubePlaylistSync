@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 def _default_ffmpeg_path() -> str:
@@ -40,9 +43,9 @@ class Settings:
     def _load_from_path(self, path: Path) -> None:
         try:
             self.data.update(json.loads(path.read_text(encoding="utf-8")))
-        except Exception:
+        except (OSError, TypeError, UnicodeError, ValueError) as exc:
             # Leave defaults if invalid JSON; validation can be added later.
-            pass
+            logger.debug("Failed to load config %s: %s", path, exc)
 
     def _write_default_config(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
