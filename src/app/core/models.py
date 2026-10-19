@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 
 class DownloadMode(str, Enum):
@@ -15,7 +14,7 @@ class DownloadMode(str, Enum):
 @dataclass(frozen=True)
 class Playlist:
     id: str
-    name: Optional[str]
+    name: str | None
     url: str
     path: Path
     mode: DownloadMode = DownloadMode.audio
@@ -29,7 +28,7 @@ class PlaylistItem:
     video_id: str
     title: str
     playlist_index: int
-    local_filename: Optional[str] = None
+    local_filename: str | None = None
     downloaded: bool = False
 
 
@@ -45,9 +44,9 @@ class SyncActionType(str, Enum):
 @dataclass(frozen=True)
 class SyncAction:
     type: SyncActionType
-    item: Optional[PlaylistItem] = None
-    from_name: Optional[str] = None
-    to_name: Optional[str] = None
+    item: PlaylistItem | None = None
+    from_name: str | None = None
+    to_name: str | None = None
 
 
 @dataclass(frozen=True)

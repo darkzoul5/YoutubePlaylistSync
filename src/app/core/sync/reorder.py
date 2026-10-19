@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, Tuple
 
 
-def safe_multi_rename(renames: Iterable[Tuple[Path, Path]]) -> None:
+def safe_multi_rename(renames: Iterable[tuple[Path, Path]]) -> None:
     """
     Apply multiple renames safely using a two-pass strategy to avoid
     name collisions. Each item is a tuple (src_path, dst_path).
@@ -14,7 +14,7 @@ def safe_multi_rename(renames: Iterable[Tuple[Path, Path]]) -> None:
     existing_dests = {dst for _, dst in planned}
 
     # Pass 1: move all sources that would collide to temporary names
-    temps: Dict[Path, Path] = {}
+    temps: dict[Path, Path] = {}
     for src, dst in planned:
         if not src.exists():
             continue

@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-import time
 import shutil
+import time
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List
 
+from ..database.db import Database
 from ..download.queue_manager import DownloadJob, QueueManager
 from ..download.workers import default_worker
+from ..events.event_bus import EventBus
 from ..models import SyncAction, SyncActionType
 from ..sync.reorder import safe_multi_rename
-from ..database.db import Database
-from ..utils.yt import extract_playlist_id
-from ..events.event_bus import EventBus
 from ..utils.deps import ensure_ffmpeg_available, ensure_yt_dlp_available
 from ..utils.rate_limit import is_youtube_rate_limit_error
+from ..utils.yt import extract_playlist_id
 
 
 class ActionExecutor:
@@ -140,7 +140,7 @@ class ActionExecutor:
         playlist_id = extract_playlist_id(playlist_cfg.get("url", "")) or playlist_cfg.get("url", "")
         audio_renames = []
         video_renames = []
-        applied: List[SyncAction] = []
+        applied: list[SyncAction] = []
         for a in actions:
             if a.type != SyncActionType.RENAME or not a.from_name or not a.to_name:
                 continue
@@ -284,7 +284,7 @@ class ActionExecutor:
 
         await queue.start(worker)
         try:
-            jobs: List[DownloadJob] = []
+            jobs: list[DownloadJob] = []
 
             # Collapse 'both' into single video download + local audio extraction
             # Build per-video desired outputs

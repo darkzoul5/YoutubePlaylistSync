@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
 
 from ..models import PlaylistItem
 
@@ -19,7 +18,7 @@ class PlaylistScanner:
     def __init__(self) -> None:
         pass
 
-    def scan(self, playlist_url: str, playlist_id: str, *, ffmpeg_path: Optional[str] = None) -> List[PlaylistItem]:
+    def scan(self, playlist_url: str, playlist_id: str, *, ffmpeg_path: str | None = None) -> list[PlaylistItem]:
         """Return the current remote playlist entries as `PlaylistItem` records."""
         try:
             import yt_dlp  # type: ignore
@@ -46,7 +45,7 @@ class PlaylistScanner:
             info = ydl.extract_info(playlist_url, download=False)
 
         entries = info.get("entries", []) if isinstance(info, dict) else []
-        items: List[PlaylistItem] = []
+        items: list[PlaylistItem] = []
         for idx, v in enumerate(entries, start=1):
             if not v:
                 continue

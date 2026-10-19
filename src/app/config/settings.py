@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 def _default_ffmpeg_path() -> str:
@@ -12,7 +12,7 @@ def _default_ffmpeg_path() -> str:
     return "./bin/ffmpeg"
 
 
-DEFAULT_CONFIG: Dict[str, Any] = {
+DEFAULT_CONFIG: dict[str, Any] = {
     "playlists": [],
     "download_mode": "video",
     "max_download_quality": "1080p",
@@ -29,7 +29,7 @@ class Settings:
         base_dir = Path("config")
         base_dir.mkdir(parents=True, exist_ok=True)
         self.path = (base_dir / "yt-playlist-config.json").resolve()
-        self.data: Dict[str, Any] = dict(DEFAULT_CONFIG)
+        self.data: dict[str, Any] = dict(DEFAULT_CONFIG)
 
         # Ensure there is always a config file at the default path.
         if not self.path.exists():
@@ -46,7 +46,7 @@ class Settings:
 
     def _write_default_config(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        default_payload: Dict[str, Any] = {
+        default_payload: dict[str, Any] = {
             "playlists": [
                 {
                     "url": "https://www.youtube.com/playlist?list=YOUR_PLAYLIST_ID",
@@ -60,7 +60,7 @@ class Settings:
         path.write_text(json.dumps(default_payload, indent=2) + "\n", encoding="utf-8")
 
     @property
-    def playlists(self) -> List[Dict[str, Any]]:
+    def playlists(self) -> list[dict[str, Any]]:
         global_defaults = {
             "download_mode": self.data.get("download_mode", DEFAULT_CONFIG["download_mode"]),
             "max_download_quality": self.data.get("max_download_quality", DEFAULT_CONFIG["max_download_quality"]),
@@ -71,7 +71,7 @@ class Settings:
             "retry_delay_seconds": self.data.get("retry_delay_seconds", DEFAULT_CONFIG["retry_delay_seconds"]),
         }
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         for pl in list(self.data.get("playlists", [])):
             if not isinstance(pl, dict):
                 continue

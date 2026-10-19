@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+
+from ..utils.rate_limit import is_youtube_rate_limit_error
 from .downloader import Downloader
 from .queue_manager import DownloadJob, JobState
-from ..utils.rate_limit import is_youtube_rate_limit_error
 
 
 async def default_worker(job: DownloadJob, *, max_retries: int = 2, delay_seconds: float = 1.5):

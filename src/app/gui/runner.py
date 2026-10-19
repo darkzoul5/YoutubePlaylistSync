@@ -4,19 +4,19 @@ import asyncio
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from PySide6 import QtCore
 
 from ..core.database.db import Database
+from ..core.events.event_bus import EventBus
 from ..core.sync.executor import ActionExecutor
 from ..core.sync.service import SyncService
-from ..core.events.event_bus import EventBus
 
 
 @dataclass(frozen=True)
 class SyncRequest:
-    playlist_cfg: Dict[str, Any]
+    playlist_cfg: dict[str, Any]
     apply: bool = True
     db_path: Path = Path("db/app.db")
     cancel_flag: threading.Event | None = None

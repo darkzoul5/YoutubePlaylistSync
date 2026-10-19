@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from ..models import PlaylistItem
 
@@ -22,17 +23,17 @@ class JobState(str, Enum):
 @dataclass
 class DownloadJob:
     item: PlaylistItem
-    output_path: Optional[Path] = None
-    url: Optional[str] = None
+    output_path: Path | None = None
+    url: str | None = None
     mode: str = "audio"  # audio|video
     state: JobState = JobState.QUEUED
-    error: Optional[str] = None
-    ffmpeg_path: Optional[str] = None
-    max_download_quality: Optional[str] = None
-    playlist_id: Optional[str] = None
-    progress_callback: Optional[Callable[[dict[str, Any]], None]] = None
-    cancel_check: Optional[Callable[[], bool]] = None
-    audio_output_path: Optional[Path] = None  # when mode=video and we also want mp3
+    error: str | None = None
+    ffmpeg_path: str | None = None
+    max_download_quality: str | None = None
+    playlist_id: str | None = None
+    progress_callback: Callable[[dict[str, Any]], None] | None = None
+    cancel_check: Callable[[], bool] | None = None
+    audio_output_path: Path | None = None  # when mode=video and we also want mp3
     keep_video: bool = True
 
 
@@ -45,7 +46,7 @@ class QueueManager:
     """
 
     def __init__(self, concurrency: int = 2) -> None:
-        self._queue: "asyncio.Queue[DownloadJob]" = asyncio.Queue()
+        self._queue: asyncio.Queue[DownloadJob] = asyncio.Queue()
         self._concurrency = max(1, concurrency)
         self._workers: list[asyncio.Task[None]] = []
         self._stopped = asyncio.Event()

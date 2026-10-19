@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...config.settings import Settings
 from ...core.database.db import Database
 from ...core.utils.yt import extract_playlist_id
-from ..smooth_scroll import enable_smooth_scrolling
 from ..config_store import load_config, normalize_config, save_config
+from ..smooth_scroll import enable_smooth_scrolling
 
 
 @dataclass(frozen=True)

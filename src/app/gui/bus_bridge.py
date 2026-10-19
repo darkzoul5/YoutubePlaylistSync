@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Any, Dict
+
+from typing import Any
+
 from PySide6 import QtCore
 
 from ..core.events.event_bus import EventBus
@@ -32,7 +34,7 @@ class BusBridge(QtCore.QObject):
             self._bus.subscribe(name, self._make_handler(name))
 
     def _make_handler(self, name: str):
-        async def handler(payload: Dict[str, Any]) -> None:
+        async def handler(payload: dict[str, Any]) -> None:
             # Ensure delivery on the Qt main thread.
             self.event.emit(name, dict(payload))
 

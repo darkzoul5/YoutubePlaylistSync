@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 from ..database.db import Database
 from ..models import PlaylistItem, SyncAction
@@ -34,7 +33,7 @@ class SyncService:
             return [".mp3", ".mp4"]
         return [".mp4"]
 
-    def sync_from_config(self, playlist_cfg: dict) -> List[SyncAction]:
+    def sync_from_config(self, playlist_cfg: dict) -> list[SyncAction]:
         """Return the sync actions required to bring one playlist in sync.
 
         This method does not apply any changes itself. It normalizes the
@@ -60,7 +59,7 @@ class SyncService:
         ffmpeg_cfg = playlist_cfg.get("ffmpeg_path")
         items = self.scanner.scan(url, playlist_id, ffmpeg_path=str(ffmpeg_cfg) if ffmpeg_cfg is not None else None)
 
-        sanitized: List[PlaylistItem] = []
+        sanitized: list[PlaylistItem] = []
         for it in items:
             safe_title = sanitize_title(it.title, it.video_id)
             sanitized.append(
@@ -100,7 +99,7 @@ class SyncService:
             )
 
         # Augment remote items with DB-known filenames/download flags
-        augmented: List[PlaylistItem] = []
+        augmented: list[PlaylistItem] = []
         for it in sanitized:
             known = db_index.get(it.video_id)
             if known is None:
@@ -118,7 +117,7 @@ class SyncService:
                 )
 
         exts = self._mode_to_extensions(mode)
-        merged_actions: List[SyncAction] = []
+        merged_actions: list[SyncAction] = []
 
         # Compute per-extension actions against respective roots
         for ext in exts:

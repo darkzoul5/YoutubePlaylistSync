@@ -6,7 +6,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from shutil import which
-from typing import Optional, Tuple
 
 
 class DependencyError(RuntimeError):
@@ -16,14 +15,14 @@ class DependencyError(RuntimeError):
 @dataclass(frozen=True)
 class DependencyStatus:
     yt_dlp_ok: bool
-    yt_dlp_version: Optional[str]
+    yt_dlp_version: str | None
     ffmpeg_ok: bool
-    ffmpeg_path: Optional[str]
+    ffmpeg_path: str | None
     ffprobe_ok: bool
-    ffprobe_path: Optional[str]
+    ffprobe_path: str | None
 
 
-def get_yt_dlp_version() -> Optional[str]:
+def get_yt_dlp_version() -> str | None:
     try:
         import yt_dlp  # type: ignore
 
@@ -44,7 +43,7 @@ def ensure_yt_dlp_available() -> str:
     return get_yt_dlp_version() or "unknown"
 
 
-def _resolve_tool_paths(tool_hint: Optional[str], exe_name: str) -> Tuple[Optional[str], Optional[str]]:
+def _resolve_tool_paths(tool_hint: str | None, exe_name: str) -> tuple[str | None, str | None]:
     """
     Returns (resolved_exe_path, resolved_dir_hint).
     - If tool_hint is a file path, use it.
@@ -70,7 +69,7 @@ def _resolve_tool_paths(tool_hint: Optional[str], exe_name: str) -> Tuple[Option
     return None, None
 
 
-def ensure_ffmpeg_available(ffmpeg_hint: Optional[str]) -> Tuple[str, str]:
+def ensure_ffmpeg_available(ffmpeg_hint: str | None) -> tuple[str, str]:
     """
     Ensures ffmpeg is runnable. Returns (ffmpeg_path, ffmpeg_path).
 

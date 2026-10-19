@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from .queue_manager import DownloadJob, JobState
 
 
@@ -11,7 +9,7 @@ class Downloader:
     where actual download logic will land (audio/video/both).
     """
 
-    def __init__(self, yt_dlp_path: Optional[str] = None, ffmpeg_path: Optional[str] = None) -> None:
+    def __init__(self, yt_dlp_path: str | None = None, ffmpeg_path: str | None = None) -> None:
         self.yt_dlp_path = yt_dlp_path
         self.ffmpeg_path = ffmpeg_path
 
@@ -72,8 +70,9 @@ class Downloader:
         import asyncio
 
         def run():
-            import yt_dlp  # type: ignore
             from pathlib import Path
+
+            import yt_dlp  # type: ignore
             try:
                 from yt_dlp.utils import DownloadCancelled  # type: ignore
             except Exception:  # pragma: no cover - optional
@@ -138,15 +137,13 @@ class Downloader:
 
                         should_emit = status in {"finished", "error"}
                         if not should_emit:
-                            if now - last_ts >= 0.25:
-                                should_emit = True
-                            elif pct is not None and (last_pct < 0 or abs(pct - last_pct) >= 0.01):
+                            if now - last_ts >= 0.25 or pct is not None and (last_pct < 0 or abs(pct - last_pct) >= 0.01):
                                 should_emit = True
 
                         if should_emit:
-                            setattr(job, "_last_progress_emit_ts", now)
+                            job._last_progress_emit_ts = now
                             if pct is not None:
-                                setattr(job, "_last_progress_emit_pct", pct)
+                                job._last_progress_emit_pct = pct
                             progress_cb(payload)
                     except Exception:
                         pass

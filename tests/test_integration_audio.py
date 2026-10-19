@@ -5,10 +5,9 @@ import os
 import pytest
 
 from app.core.database.db import Database
-from app.core.sync.executor import ActionExecutor
 from app.core.events.event_bus import EventBus
+from app.core.sync.executor import ActionExecutor
 from app.core.sync.service import SyncService
-
 
 PLAYLIST_URL = os.getenv("TEST_PLAYLIST_URL")
 

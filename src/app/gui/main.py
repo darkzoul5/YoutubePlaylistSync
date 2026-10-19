@@ -7,15 +7,15 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..config.settings import Settings
 from ..core.events.event_bus import EventBus
-from .bus_bridge import BusBridge
 from .app_icon import load_app_icon
+from .bus_bridge import BusBridge
 from .config_store import load_config
-from .runner import SyncRequest, SyncRunner
+from .pages.about import AboutPage
+from .pages.logs import LogsPage
 from .pages.playlists import PlaylistManagerPage
 from .pages.queue import QueuePage
-from .pages.logs import LogsPage
 from .pages.settings import SettingsPage
-from .pages.about import AboutPage
+from .runner import SyncRequest, SyncRunner
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -334,8 +334,8 @@ class MainWindow(QtWidgets.QMainWindow):
             pass
 
         # Continue "sync all" chain if active.
-        if hasattr(self, "_sync_queue") and getattr(self, "_sync_queue"):
-            nxt = getattr(self, "_sync_queue").pop(0)
+        if hasattr(self, "_sync_queue") and self._sync_queue:
+            nxt = self._sync_queue.pop(0)
             self._sync_playlist_index(nxt)
 
     @QtCore.Slot()

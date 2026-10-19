@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Sequence
 
 from ..models import FilesystemEntry
 
 
-def list_files(root: Path, extensions: Sequence[str]) -> List[FilesystemEntry]:
+def list_files(root: Path, extensions: Sequence[str]) -> list[FilesystemEntry]:
     exts = {e.lower() for e in extensions}
-    results: List[FilesystemEntry] = []
+    results: list[FilesystemEntry] = []
     if not root.exists():
         return results
     for p in root.glob("**/*"):

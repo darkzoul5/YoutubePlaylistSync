@@ -3,17 +3,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import re
 from pathlib import Path
 
 from .config.settings import Settings
 from .core.database.db import Database
-from .core.sync.service import SyncService
-from .core.sync.executor import ActionExecutor
 from .core.events.event_bus import EventBus
-import re
-from .core.utils.yt import extract_playlist_id
+from .core.sync.executor import ActionExecutor
+from .core.sync.service import SyncService
 from .core.utils.deps import DependencyError
 from .core.utils.logging_setup import configure_logging
+from .core.utils.yt import extract_playlist_id
 
 
 def main(argv: list[str] | None = None) -> int:

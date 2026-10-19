@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from ..models import FilesystemEntry, PlaylistItem, SyncAction, SyncActionType
 
@@ -18,8 +18,8 @@ class DiffEngine:
         db_index: Mapping[str, PlaylistItem],
         fs_entries: Iterable[FilesystemEntry],
         extension: str,
-    ) -> List[SyncAction]:
-        actions: List[SyncAction] = []
+    ) -> list[SyncAction]:
+        actions: list[SyncAction] = []
 
         desired_names = {
             item.video_id: f"{item.playlist_index:04d} - {item.title}{extension}"

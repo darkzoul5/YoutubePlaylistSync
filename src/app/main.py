@@ -12,10 +12,10 @@ from pathlib import Path
 
 from .config.settings import Settings
 from .core.database.db import Database
-from .core.sync.service import SyncService
 from .core.sync.executor import ActionExecutor
-from .core.utils.yt import extract_playlist_id
+from .core.sync.service import SyncService
 from .core.utils.deps import DependencyError
+from .core.utils.yt import extract_playlist_id
 
 
 def bootstrap(db_path: Path | None = None) -> None:

@@ -11,7 +11,7 @@ class _SmoothWheelFilter(QtCore.QObject):
         self._anim = QtCore.QPropertyAnimation(area.verticalScrollBar(), b"value", self)
         self._anim.setEasingCurve(QtCore.QEasingCurve.Type.OutCubic)
 
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() != QtCore.QEvent.Type.Wheel:
             return super().eventFilter(obj, event)
 
