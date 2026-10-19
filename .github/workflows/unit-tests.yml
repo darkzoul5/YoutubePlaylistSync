@@ -1,19 +1,8 @@
-name: Unit tests
+name: Unit Tests
 
 on:
+  workflow_call:
   workflow_dispatch:
-  push:
-    branches: 
-      - main
-    paths-ignore:
-      - "assets/**"
-      - "README.md"
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - "assets/**"
-      - "README.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

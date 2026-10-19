@@ -1,18 +1,8 @@
-name: Lint Python code
+name: Lint
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "assets/**"
-      - "README.md"
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - "assets/**"
-      - "README.md"
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   lint:
