@@ -408,6 +408,26 @@ class MainWindow(QtWidgets.QMainWindow):
               border-radius: 10px;
               color: #d7dce4;
             }
+                        QScrollArea#logsScroll {
+                            background: #11151c;
+                            border: 1px solid #2a3140;
+                            border-radius: 10px;
+                        }
+                        QWidget#logEntries {
+                            background: #11151c;
+                        }
+                        QFrame#logEntry {
+                            background: #171b22;
+                            border: 1px solid #2a3140;
+                            border-radius: 8px;
+                        }
+                        QLabel#logEventName {
+                            color: #8ea7ff;
+                            font-weight: 600;
+                        }
+                        QLabel#logEntryBody {
+                            color: #cfd3da;
+                        }
             QScrollBar:vertical {
               background: #0f1218;
               width: 12px;

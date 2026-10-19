@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ..smooth_scroll import enable_smooth_scrolling
 
@@ -23,22 +23,55 @@ class LogsPage(QtWidgets.QWidget):
         top.addWidget(clear_btn)
         layout.addLayout(top)
 
-        self._text = QtWidgets.QPlainTextEdit()
-        self._text.setReadOnly(True)
-        enable_smooth_scrolling(self._text)
-        layout.addWidget(self._text, 1)
+        self._scroll = QtWidgets.QScrollArea()
+        self._scroll.setObjectName("logsScroll")
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+
+        self._entries = QtWidgets.QWidget()
+        self._entries.setObjectName("logEntries")
+        self._entries_layout = QtWidgets.QVBoxLayout(self._entries)
+        self._entries_layout.setContentsMargins(2, 2, 2, 2)
+        self._entries_layout.setSpacing(8)
+        self._entries_layout.addStretch(1)
+        self._scroll.setWidget(self._entries)
+        enable_smooth_scrolling(self._scroll)
+        layout.addWidget(self._scroll, 1)
 
     def _clear(self) -> None:
-        self._text.clear()
+        while self._entries_layout.count() > 1:
+            item = self._entries_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
 
     def on_event(self, name: str, payload: dict) -> None:
         # Avoid flooding the UI with high-frequency progress updates.
         if name == "DownloadProgress":
             return
-        # Keep this lightweight: append a single-line JSON entry.
+        # Keep the event name in the header and show only its payload here.
         try:
-            line = json.dumps({"event": name, **payload}, ensure_ascii=False)
+            line = json.dumps(payload, ensure_ascii=False)
         except Exception:  # noqa: BLE001 - fall back to a readable representation
-            line = f"{name}: {payload}"
-        self._text.appendPlainText(line)
-        self._text.moveCursor(self._text.textCursor().End)
+            line = str(payload)
+        entry = QtWidgets.QFrame()
+        entry.setObjectName("logEntry")
+
+        entry_layout = QtWidgets.QVBoxLayout(entry)
+        entry_layout.setContentsMargins(12, 9, 12, 9)
+        entry_layout.setSpacing(4)
+
+        event_label = QtWidgets.QLabel(name)
+        event_label.setObjectName("logEventName")
+        event_label.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
+        entry_layout.addWidget(event_label)
+
+        body_label = QtWidgets.QLabel(line)
+        body_label.setObjectName("logEntryBody")
+        body_label.setWordWrap(True)
+        body_label.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
+        body_label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Preferred)
+        entry_layout.addWidget(body_label)
+
+        self._entries_layout.insertWidget(self._entries_layout.count() - 1, entry)
+        self._scroll.verticalScrollBar().setValue(self._scroll.verticalScrollBar().maximum())
