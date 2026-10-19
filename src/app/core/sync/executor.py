@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import shutil
 import time
 from collections.abc import Iterable
@@ -15,6 +16,8 @@ from ..sync.reorder import safe_multi_rename
 from ..utils.deps import ensure_ffmpeg_available, ensure_yt_dlp_available
 from ..utils.rate_limit import is_youtube_rate_limit_error
 from ..utils.yt import extract_playlist_id
+
+logger = logging.getLogger(__name__)
 
 
 class ActionExecutor:
@@ -95,7 +98,8 @@ class ActionExecutor:
         try:
             self.db.set_playlist_last_sync(playlist_id)
             last_sync = self.db.get_playlist_last_sync(playlist_id)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - sync timestamp persistence is best effort
+            logger.debug("Failed to persist playlist sync timestamp: %s", exc)
             last_sync = None
         summary = {
             "playlist_id": playlist_id,
@@ -160,8 +164,8 @@ class ActionExecutor:
             if a.item and a.to_name:
                 try:
                     self.db.update_local_filename(playlist_id, a.item.video_id, a.to_name)
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001 - database update is best effort
+                    logger.debug("Failed to update renamed file in database: %s", exc)
                 if self.bus:
                     await self.bus.publish("RenameApplied", {"playlist_id": playlist_id, "video_id": a.item.video_id, "to": a.to_name})
 
@@ -187,18 +191,19 @@ class ActionExecutor:
                     if dst.exists():
                         dst.unlink()
                     shutil.move(str(src), str(dst))
-                except Exception:
+                except OSError as exc:
+                    logger.debug("Failed to recycle file %s: %s", src, exc)
                     # fallback to delete if move fails
                     try:
                         src.unlink()
-                    except Exception:
-                        pass
+                    except OSError as unlink_exc:
+                        logger.debug("Failed to delete unrecycled file %s: %s", src, unlink_exc)
             # Update DB to clear file state
             if a.item:
                 try:
                     self.db.clear_file_state(playlist_id, a.item.video_id)
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001 - database update is best effort
+                    logger.debug("Failed to clear deleted file in database: %s", exc)
                 if self.bus:
                     asyncio.create_task(self.bus.publish("FileRecycled", {"playlist_id": playlist_id, "video_id": a.item.video_id, "name": a.from_name}))
 
@@ -219,7 +224,7 @@ class ActionExecutor:
         concurrency_cfg = playlist_cfg.get("max_parallel_downloads", self.concurrency)
         try:
             concurrency = int(concurrency_cfg) if concurrency_cfg is not None else self.concurrency
-        except Exception:
+        except (TypeError, ValueError):
             concurrency = self.concurrency
         queue = QueueManager(concurrency=concurrency)
 
@@ -227,17 +232,17 @@ class ActionExecutor:
         retry_delay_cfg = playlist_cfg.get("retry_delay_seconds", 1.5)
         try:
             retry_max_retries = int(retry_max_cfg) if retry_max_cfg is not None else 2
-        except Exception:
+        except (TypeError, ValueError):
             retry_max_retries = 2
         try:
             retry_delay_seconds = float(retry_delay_cfg) if retry_delay_cfg is not None else 1.5
-        except Exception:
+        except (TypeError, ValueError):
             retry_delay_seconds = 1.5
 
         delay_cfg = playlist_cfg.get("delay_between_downloads_seconds", 0.0)
         try:
             delay_between_downloads_seconds = float(delay_cfg) if delay_cfg is not None else 0.0
-        except Exception:
+        except (TypeError, ValueError):
             delay_between_downloads_seconds = 0.0
 
         rate_limit_pause = asyncio.Event()
@@ -416,5 +421,5 @@ class ActionExecutor:
                                 )
                             else:
                                 await self.bus.publish("DownloadFailed", {"playlist_id": playlist_id, "video_id": job.item.video_id, "error": err})
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001 - one failed job must not stop finalization
+                    logger.debug("Failed to persist download result: %s", exc)
