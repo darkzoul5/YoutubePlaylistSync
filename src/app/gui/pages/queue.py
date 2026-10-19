@@ -30,9 +30,12 @@ class QueuePage(QtWidgets.QWidget):
         top.addStretch(1)
         clear_btn = QtWidgets.QPushButton("Clear completed")
         clear_btn.clicked.connect(self._clear_completed)
+        clear_all_btn = QtWidgets.QPushButton("Clear all")
+        clear_all_btn.clicked.connect(self._clear_all)
         cancel_btn = QtWidgets.QPushButton("Cancel all")
         cancel_btn.clicked.connect(self.cancel_sync_requested.emit)
         top.addWidget(clear_btn)
+        top.addWidget(clear_all_btn)
         top.addWidget(cancel_btn)
         layout.addLayout(top)
 
@@ -213,3 +216,9 @@ class QueuePage(QtWidgets.QWidget):
             vid = v_item.text()
             rebuilt[(str(pid), str(vid))] = v_item
         self._rows_by_key = rebuilt
+
+    def _clear_all(self) -> None:
+        self._pending_by_key.clear()
+        self._rows_by_key.clear()
+        self._table.setRowCount(0)
+        self._hint.setText("Waiting for downloads…")
