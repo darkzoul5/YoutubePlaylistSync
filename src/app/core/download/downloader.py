@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 from .queue_manager import DownloadJob, JobState
+
+logger = logging.getLogger(__name__)
 
 
 class Downloader:
@@ -32,7 +36,7 @@ class Downloader:
                 return None
             try:
                 cap = int(digits)
-            except Exception:
+            except ValueError:
                 return None
             return cap if cap > 0 else None
 
@@ -58,10 +62,10 @@ class Downloader:
                 if not job.keep_video and job.output_path:
                     try:
                         job.output_path.unlink(missing_ok=True)
-                    except Exception:
-                        pass
+                    except OSError as exc:
+                        logger.debug("Failed to remove temporary video file: %s", exc)
             job.state = JobState.COMPLETED
-        except Exception as exc:  # pragma: no cover - environment dependent
+        except Exception as exc:  # noqa: BLE001  # pragma: no cover - environment dependent
             job.state = JobState.FAILED
             job.error = str(exc)
 
@@ -75,7 +79,7 @@ class Downloader:
             import yt_dlp  # type: ignore
             try:
                 from yt_dlp.utils import DownloadCancelled  # type: ignore
-            except Exception:  # pragma: no cover - optional
+            except (ImportError, AttributeError):  # pragma: no cover - optional
                 DownloadCancelled = Exception  # type: ignore[misc,assignment]
 
             class _QuietLogger:
@@ -136,17 +140,19 @@ class Downloader:
                         pct = float(payload.get("progress")) if isinstance(payload.get("progress"), (int, float)) else None
 
                         should_emit = status in {"finished", "error"}
-                        if not should_emit:
-                            if now - last_ts >= 0.25 or pct is not None and (last_pct < 0 or abs(pct - last_pct) >= 0.01):
-                                should_emit = True
+                        if not should_emit and (
+                            now - last_ts >= 0.25
+                            or pct is not None and (last_pct < 0 or abs(pct - last_pct) >= 0.01)
+                        ):
+                            should_emit = True
 
                         if should_emit:
                             job._last_progress_emit_ts = now
                             if pct is not None:
                                 job._last_progress_emit_pct = pct
                             progress_cb(payload)
-                    except Exception:
-                        pass
+                    except Exception as exc:  # noqa: BLE001 - progress hooks must not abort downloads
+                        logger.debug("Progress callback failed: %s", exc)
 
                 ydl_opts["progress_hooks"] = [hook]
 
@@ -157,8 +163,8 @@ class Downloader:
                     p = Path(str(ffmpeg_hint))
                     if p.exists():
                         ydl_opts["ffmpeg_location"] = str(p)
-                except Exception:
-                    pass
+                except (OSError, TypeError, ValueError) as exc:
+                    logger.debug("Invalid ffmpeg path: %s", exc)
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # type: ignore[attr-defined]
                 ydl.download([job.url])
