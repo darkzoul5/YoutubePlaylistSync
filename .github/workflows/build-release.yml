@@ -24,49 +24,6 @@ permissions:
   contents: write
 
 jobs:
-  tag:
-    name: Create tag
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Validate input tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG="${{ inputs.tag }}"
-          if [[ -z "$TAG" ]]; then
-            echo "tag is required" >&2
-            exit 1
-          fi
-          if [[ "$TAG" != v* ]]; then
-            echo "tag must start with 'v' (got: $TAG)" >&2
-            exit 1
-          fi
-
-      - name: Create/push tag
-        shell: bash
-        env:
-          TAG: ${{ inputs.tag }}
-          FORCE: ${{ inputs.force_tag }}
-        run: |
-          set -euo pipefail
-
-          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
-            if [[ "${FORCE}" != "true" ]]; then
-              echo "Tag ${TAG} already exists. Re-run with force_tag=true to recreate." >&2
-              exit 1
-            fi
-            git tag -d "${TAG}" || true
-            git push origin ":refs/tags/${TAG}" || true
-          fi
-
-          git tag "${TAG}" "${GITHUB_SHA}"
-          git push origin "${TAG}"
-
   test:
     name: Test
     uses: ./.github/workflows/test.yml
@@ -75,7 +32,7 @@ jobs:
 
   build:
     name: Build packages
-    needs: tag
+    needs: test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -266,9 +223,52 @@ jobs:
             ytpl-sync-*.zip
             ytpl-sync-*.tar.gz
 
+  tag:
+    name: Create tag
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate input tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          if [[ -z "$TAG" ]]; then
+            echo "tag is required" >&2
+            exit 1
+          fi
+          if [[ "$TAG" != v* ]]; then
+            echo "tag must start with 'v' (got: $TAG)" >&2
+            exit 1
+          fi
+
+      - name: Create/push tag
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force_tag }}
+        run: |
+          set -euo pipefail
+
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            if [[ "${FORCE}" != "true" ]]; then
+              echo "Tag ${TAG} already exists. Re-run with force_tag=true to recreate." >&2
+              exit 1
+            fi
+            git tag -d "${TAG}" || true
+            git push origin ":refs/tags/${TAG}" || true
+          fi
+
+          git tag "${TAG}" "${GITHUB_SHA}"
+          git push origin "${TAG}"
+
   release:
     name: Create Release
-    needs: build
+    needs: tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
