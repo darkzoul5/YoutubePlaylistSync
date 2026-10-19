@@ -103,12 +103,12 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-          cache: "pip" 
+          cache: "pip"
 
       - name: Install build deps
         run: |
           python -m pip install --upgrade pip
-          pip install -e . 
+          pip install -e .
           pip install pyinstaller
 
       - name: Build binary (Windows)
@@ -221,7 +221,13 @@ jobs:
           fi
 
           tar -xf ffmpeg.tar.xz -C ffmpeg_tmp --strip-components=1
-          mv ffmpeg_tmp/ffmpeg package/bin/ffmpeg
+          ffmpeg_binary="$(find ffmpeg_tmp -type f -name ffmpeg -perm -u+x -print -quit)"
+          if [[ -z "$ffmpeg_binary" ]]; then
+            echo "Extracted archive does not contain an executable ffmpeg binary" >&2
+            find ffmpeg_tmp -maxdepth 3 -type f -print >&2 || true
+            exit 1
+          fi
+          mv "$ffmpeg_binary" package/bin/ffmpeg
           chmod +x package/bin/ffmpeg
 
       - name: Archive (Windows)
