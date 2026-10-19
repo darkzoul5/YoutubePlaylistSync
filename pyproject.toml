@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ytpl-sync"
-version = "2.2.0"
+version = "2.3.0"
 description = "YouTube playlist Sync"
 readme = "README.md"
 authors = [ { name = "Dark_Zoul" } ]
