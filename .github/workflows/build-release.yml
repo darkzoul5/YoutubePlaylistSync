@@ -205,7 +205,8 @@ jobs:
           set -euo pipefail
           mkdir -p package/bin ffmpeg_tmp
 
-          primary_url="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+          archive_name="ffmpeg-n9.0-latest-linux64-gpl-9.0.tar.xz"
+          release_url="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest"
           curl_common=(
             --fail
             --location
@@ -215,11 +216,15 @@ jobs:
             --user-agent "Mozilla/5.0 (GitHub Actions; ytpl-sync release workflow)"
           )
 
-          curl "${curl_common[@]}" "$primary_url" -o ffmpeg.tar.xz
-          curl "${curl_common[@]}" "${primary_url}.md5" -o ffmpeg.tar.xz.md5
+          curl "${curl_common[@]}" "${release_url}/${archive_name}" -o ffmpeg.tar.xz
+          curl "${curl_common[@]}" "${release_url}/checksums.sha256" -o checksums.sha256
 
-          expected_md5="$(awk '{print $1}' ffmpeg.tar.xz.md5)"
-          printf '%s *ffmpeg.tar.xz\n' "$expected_md5" | md5sum -c -
+          expected_sha256="$(awk -v archive="$archive_name" '$2 == archive || $2 == "*" archive { print $1; exit }' checksums.sha256)"
+          if [[ -z "$expected_sha256" ]]; then
+            echo "Checksum for ${archive_name} was not found" >&2
+            exit 1
+          fi
+          printf '%s  ffmpeg.tar.xz\n' "$expected_sha256" | sha256sum -c -
 
           if ! tar -tf ffmpeg.tar.xz >/dev/null 2>&1; then
             echo "Downloaded FFmpeg payload is not a valid tar archive" >&2
