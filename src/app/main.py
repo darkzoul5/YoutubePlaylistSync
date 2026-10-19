@@ -49,7 +49,7 @@ def bootstrap(db_path: Path | None = None) -> None:
                 print("Applied actions.")
             else:
                 print(f"No actions needed for: {pl.get('url')}")
-        except Exception as exc:  # keep bootstrap resilient during early dev
+        except Exception as exc:  # noqa: BLE001 - keep bootstrap resilient during early dev
             print(f"Failed to sync playlist {pl.get('url')}: {exc}")
 
 
