@@ -42,9 +42,9 @@ class Downloader:
 
         cap = parse_height_cap(max_download_quality)
         if cap is not None:
-            #if the requested cap isn't available, we still download the best mp4.
-            return f"best[ext=mp4][acodec!=none][vcodec!=none][height<={cap}]/best[ext=mp4][height<={cap}]/best[ext=mp4]"
-        return "best[ext=mp4][acodec!=none][vcodec!=none]/best[ext=mp4]"
+            # Prefer separate MP4 video and audio streams; yt-dlp merges them with ffmpeg.
+            return f"bestvideo[ext=mp4][height<={cap}]+bestaudio[ext=m4a]/bestvideo[ext=mp4][height<={cap}]+bestaudio/bestvideo[ext=mp4][height<={cap}]/best[ext=mp4]"
+        return "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo[ext=mp4]+bestaudio/bestvideo[ext=mp4]/best[ext=mp4]"
 
     async def handle_job(self, job: DownloadJob):
         try:
@@ -97,10 +97,8 @@ class Downloader:
 
             fmt = self.build_format(getattr(job, "max_download_quality", None))
 
-            # All modes download a single muxed mp4 when possible.
-            # This avoids any ffmpeg-driven merging during the download step, satisfying:
-            #   - video: "original file, no processing"
-            #   - audio/both: extraction is done separately after download
+            # Prefer MP4 video with a separate audio stream; yt-dlp merges them when needed.
+            # Audio extraction for audio/both modes happens separately after download.
             ydl_opts = {
                 "format": fmt,
                 "outtmpl": outtmpl,
