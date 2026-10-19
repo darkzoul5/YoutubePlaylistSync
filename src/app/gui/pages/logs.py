@@ -61,10 +61,20 @@ class LogsPage(QtWidgets.QWidget):
         entry_layout.setContentsMargins(12, 9, 12, 9)
         entry_layout.setSpacing(4)
 
+        header_layout = QtWidgets.QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
         event_label = QtWidgets.QLabel(name)
         event_label.setObjectName("logEventName")
         event_label.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
-        entry_layout.addWidget(event_label)
+        header_layout.addWidget(event_label)
+        header_layout.addStretch(1)
+
+        copy_btn = QtWidgets.QPushButton("Copy")
+        copy_btn.setToolTip("Copy this log entry")
+        copy_btn.clicked.connect(lambda: self._copy_entry(f"{name}\n{line}"))
+        header_layout.addWidget(copy_btn)
+        entry_layout.addLayout(header_layout)
 
         body_label = QtWidgets.QLabel(line)
         body_label.setObjectName("logEntryBody")
@@ -75,3 +85,7 @@ class LogsPage(QtWidgets.QWidget):
 
         self._entries_layout.insertWidget(self._entries_layout.count() - 1, entry)
         self._scroll.verticalScrollBar().setValue(self._scroll.verticalScrollBar().maximum())
+
+    @staticmethod
+    def _copy_entry(text: str) -> None:
+        QtWidgets.QApplication.clipboard().setText(text)
